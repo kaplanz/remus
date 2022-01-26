@@ -10,6 +10,12 @@
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
+pub use self::null::Null;
+pub use self::random::Random;
+
+mod null;
+mod random;
+
 /// Memory-mapped I/O device.
 pub trait Device: Debug {
     fn len(&self) -> usize;
