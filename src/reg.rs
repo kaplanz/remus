@@ -3,102 +3,302 @@
 //! # Usage
 //!
 //! The [`Register`] model should be used as a quick memory cell. It is generic
-//! over the `const N: usize` values `[1, 2, 4, 8, 16]`, representing registers
-//! of types `[u8, u16, u32, u64, u128]` respectively.
+//! over the unsigned integer types, representing registers holding values of
+//! types [`u8`], [`u16`], [`u32`], [`u64`], and [`u128`] respectively.
 //!
-//! To access as the represented type, access using [`Register::get()`] and
-//! [`Register::set()`].
+//! To provide access as the represented type, [`Register`] implements [`Deref`]
+//! and [`DerefMut`] (it behaves as a newtype).
 //!
-//! Since [`Register`] implements [`Device`](crate::dev::Device), it may be
-//! mapped to another address space using a [`Bus`](crate::bus::Bus).
+//! Since [`Register`] implements [`Device`], it may be mapped to another
+//! address space using a [`Bus`](crate::bus::Bus), and is [byte-addressable]
+//! using [`Device::read()`] and [`Device::write()`].
+//!
+//! [byte-addressable]: https://en.wikipedia.org/wiki/Byte_addressing
 
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use num::Unsigned;
+
+use crate::dev::Device;
 
 /// Register model.
-#[derive(Debug)]
-pub struct Register<const N: usize>([u8; N]);
+#[derive(Debug, Default)]
+pub struct Register<U: Unsigned>(U);
 
-impl<const N: usize> Default for Register<N> {
-    fn default() -> Self {
-        Self([Default::default(); N])
+impl<U: Default + Unsigned> Register<U> {
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 
-impl<const N: usize> Deref for Register<N> {
-    type Target = [u8];
+impl<U: Unsigned> Deref for Register<U> {
+    type Target = U;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<const N: usize> DerefMut for Register<N> {
+impl<U: Unsigned> DerefMut for Register<U> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl Register<1> {
-    pub fn get(&self) -> u8 {
-        self.0.as_slice().read_u8().unwrap()
-    }
-
-    pub fn set(&mut self, value: u8) {
-        self.0.as_mut_slice().write_u8(value).unwrap();
+impl<U: Unsigned> From<U> for Register<U> {
+    fn from(value: U) -> Self {
+        Self(value)
     }
 }
 
-impl Register<2> {
-    pub fn get(&self) -> u16 {
-        self.0.as_slice().read_u16::<LittleEndian>().unwrap()
+impl Device for Register<u8> {
+    fn len(&self) -> usize {
+        std::mem::size_of::<Self>()
     }
 
-    pub fn set(&mut self, value: u16) {
-        self.0
-            .as_mut_slice()
-            .write_u16::<LittleEndian>(value)
-            .unwrap();
-    }
-}
-
-impl Register<4> {
-    pub fn get(&self) -> u32 {
-        self.0.as_slice().read_u32::<LittleEndian>().unwrap()
+    fn read(&self, index: usize) -> u8 {
+        self.to_le_bytes()[index]
     }
 
-    pub fn set(&mut self, value: u32) {
-        self.0
-            .as_mut_slice()
-            .write_u32::<LittleEndian>(value)
-            .unwrap();
+    fn write(&mut self, index: usize, value: u8) {
+        let mut bytes = self.to_le_bytes();
+        bytes[index] = value;
+        self.0 = u8::from_le_bytes(bytes);
     }
 }
 
-impl Register<8> {
-    pub fn get(&self) -> u64 {
-        self.0.as_slice().read_u64::<LittleEndian>().unwrap()
+impl Device for Register<u16> {
+    fn len(&self) -> usize {
+        std::mem::size_of::<Self>()
     }
 
-    pub fn set(&mut self, value: u64) {
-        self.0
-            .as_mut_slice()
-            .write_u64::<LittleEndian>(value)
-            .unwrap();
+    fn read(&self, index: usize) -> u8 {
+        self.to_le_bytes()[index]
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        let mut bytes = self.to_le_bytes();
+        bytes[index] = value;
+        self.0 = u16::from_le_bytes(bytes);
     }
 }
 
-impl Register<16> {
-    pub fn get(&self) -> u128 {
-        self.0.as_slice().read_u128::<LittleEndian>().unwrap()
+impl Device for Register<u32> {
+    fn len(&self) -> usize {
+        std::mem::size_of::<Self>()
     }
 
-    pub fn set(&mut self, value: u128) {
-        self.0
-            .as_mut_slice()
-            .write_u128::<LittleEndian>(value)
-            .unwrap();
+    fn read(&self, index: usize) -> u8 {
+        self.to_le_bytes()[index]
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        let mut bytes = self.to_le_bytes();
+        bytes[index] = value;
+        self.0 = u32::from_le_bytes(bytes);
+    }
+}
+
+impl Device for Register<u64> {
+    fn len(&self) -> usize {
+        std::mem::size_of::<Self>()
+    }
+
+    fn read(&self, index: usize) -> u8 {
+        self.to_le_bytes()[index]
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        let mut bytes = self.to_le_bytes();
+        bytes[index] = value;
+        self.0 = u64::from_le_bytes(bytes);
+    }
+}
+
+impl Device for Register<u128> {
+    fn len(&self) -> usize {
+        std::mem::size_of::<Self>()
+    }
+
+    fn read(&self, index: usize) -> u8 {
+        self.to_le_bytes()[index]
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        let mut bytes = self.to_le_bytes();
+        bytes[index] = value;
+        self.0 = u128::from_le_bytes(bytes);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn size_of_works() {
+        assert_eq!(std::mem::size_of::<Register::<u8>>(), 1);
+        assert_eq!(std::mem::size_of::<Register::<u16>>(), 2);
+        assert_eq!(std::mem::size_of::<Register::<u32>>(), 4);
+        assert_eq!(std::mem::size_of::<Register::<u64>>(), 8);
+        assert_eq!(std::mem::size_of::<Register::<u128>>(), 16);
+    }
+
+    #[test]
+    fn new_works() {
+        // 8-bit register
+        let r8 = Register::<u8>::new();
+        assert_eq!(r8.0, 0_u8);
+
+        // 16-bit register
+        let r16 = Register::<u16>::new();
+        assert_eq!(r16.0, 0_u16);
+
+        // 32-bit register
+        let r32 = Register::<u32>::new();
+        assert_eq!(r32.0, 0_u32);
+
+        // 64-bit register
+        let r64 = Register::<u64>::new();
+        assert_eq!(r64.0, 0_u64);
+
+        // 128-bit register
+        let r128 = Register::<u128>::new();
+        assert_eq!(r128.0, 0_u128);
+    }
+
+    #[test]
+    fn from_works() {
+        // 8-bit register
+        let r8 = Register::<u8>::from(0x01_u8);
+        assert_eq!(r8.0, 0x01_u8);
+
+        // 16-bit register
+        let r16 = Register::<u16>::from(0x0123_u16);
+        assert_eq!(r16.0, 0x0123_u16);
+
+        // 32-bit register
+        let r32 = Register::<u32>::from(0x01234567_u32);
+        assert_eq!(r32.0, 0x01234567_u32);
+
+        // 64-bit register
+        let r64 = Register::<u64>::from(0x0123456789abcdef_u64);
+        assert_eq!(r64.0, 0x0123456789abcdef_u64);
+
+        // 128-bit register
+        let r128 = Register::<u128>::from(0x0123456789abcdef0123456789abcdef_u128);
+        assert_eq!(r128.0, 0x0123456789abcdef0123456789abcdef_u128);
+    }
+
+    #[test]
+    fn deref_works() {
+        // 8-bit register
+        let r8 = Register::<u8>::from(0x01_u8);
+        assert_eq!(*r8, 0x01_u8);
+
+        // 16-bit register
+        let r16 = Register::<u16>::from(0x0123_u16);
+        assert_eq!(*r16, 0x0123_u16);
+
+        // 32-bit register
+        let r32 = Register::<u32>::from(0x01234567_u32);
+        assert_eq!(*r32, 0x01234567_u32);
+
+        // 64-bit register
+        let r64 = Register::<u64>::from(0x0123456789abcdef_u64);
+        assert_eq!(*r64, 0x0123456789abcdef_u64);
+
+        // 128-bit register
+        let r128 = Register::<u128>::from(0x0123456789abcdef0123456789abcdef_u128);
+        assert_eq!(*r128, 0x0123456789abcdef0123456789abcdef_u128);
+    }
+
+    #[test]
+    fn deref_mut_works() {
+        // 8-bit register
+        let mut r8 = Register::<u8>::new();
+        *r8 = 0x01_u8;
+        assert_eq!(*r8, 0x01_u8);
+
+        // 16-bit register
+        let mut r16 = Register::<u16>::new();
+        *r16 = 0x0123_u16;
+        assert_eq!(*r16, 0x0123_u16);
+
+        // 32-bit register
+        let mut r32 = Register::<u32>::new();
+        *r32 = 0x01234567_u32;
+        assert_eq!(*r32, 0x01234567_u32);
+
+        // 64-bit register
+        let mut r64 = Register::<u64>::new();
+        *r64 = 0x0123456789abcdef_u64;
+        assert_eq!(*r64, 0x0123456789abcdef_u64);
+
+        // 128-bit register
+        let mut r128 = Register::<u128>::new();
+        *r128 = 0x0123456789abcdef0123456789abcdef_u128;
+        assert_eq!(*r128, 0x0123456789abcdef0123456789abcdef_u128);
+    }
+
+    #[test]
+    fn device_len_works() {
+        assert_eq!(Register::<u8>::new().len(), 1);
+        assert_eq!(Register::<u16>::new().len(), 2);
+        assert_eq!(Register::<u32>::new().len(), 4);
+        assert_eq!(Register::<u64>::new().len(), 8);
+        assert_eq!(Register::<u128>::new().len(), 16);
+    }
+
+    #[test]
+    fn device_read_works() {
+        // 8-bit register
+        let r8 = Register::<u8>::from(0x01_u8);
+        assert_eq!(r8.read(0), 0x01);
+
+        // 16-bit register
+        let r16 = Register::<u16>::from(0x0123_u16);
+        assert_eq!(r16.read(1), 0x01);
+
+        // 32-bit register
+        let r32 = Register::<u32>::from(0x01234567_u32);
+        assert_eq!(r32.read(2), 0x23);
+
+        // 64-bit register
+        let r64 = Register::<u64>::from(0x0123456789abcdef_u64);
+        assert_eq!(r64.read(4), 0x67);
+
+        // 128-bit register
+        let r128 = Register::<u128>::from(0x0123456789abcdef0123456789abcdef_u128);
+        assert_eq!(r128.read(8), 0xef);
+    }
+
+    #[test]
+    fn device_write_works() {
+        // 8-bit register
+        let mut r8 = Register::<u8>::new();
+        r8.write(0, 0xaa);
+        assert_eq!(r8.read(0), 0xaa_u8);
+
+        // 16-bit register
+        let mut r16 = Register::<u16>::new();
+        r16.write(1, 0xbb);
+        assert_eq!(*r16, 0xbb00_u16);
+
+        // 32-bit register
+        let mut r32 = Register::<u32>::new();
+        r32.write(2, 0xcc);
+        assert_eq!(*r32, 0x00cc0000_u32);
+
+        // 64-bit register
+        let mut r64 = Register::<u64>::new();
+        r64.write(4, 0xdd);
+        assert_eq!(*r64, 0x000000dd00000000_u64);
+
+        // 128-bit register
+        let mut r128 = Register::<u128>::new();
+        r128.write(8, 0xee);
+        assert_eq!(*r128, 0x00000000000000ee0000000000000000_u128);
     }
 }
