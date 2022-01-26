@@ -83,7 +83,7 @@ impl<const N: usize> From<[(usize, Vec<DynDevice>); N]> for Bus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mem::Memory;
+    use crate::mem::Ram;
 
     fn setup() -> Bus {
         Bus::from([
@@ -104,7 +104,7 @@ mod tests {
         let _ = Bus::from([
             (0x000, vec![Rc::new(RefCell::new(Box::from([0; 0x100])))]),
             (0x100, vec![Rc::new(RefCell::new(vec![0; 0x100]))]),
-            (0x200, vec![Rc::new(RefCell::new(Memory::<0x100>::new()))]),
+            (0x200, vec![Rc::new(RefCell::new(Ram::<0x100>::new()))]),
         ] as [(usize, Vec<DynDevice>); 3]);
     }
 
@@ -113,7 +113,7 @@ mod tests {
         let mut bus = Bus::new();
         bus.map(0x000, Rc::new(RefCell::new(Box::from([0; 0x100]))));
         bus.map(0x100, Rc::new(RefCell::new(vec![0; 0x100])));
-        bus.map(0x200, Rc::new(RefCell::new(Memory::<0x100>::new())));
+        bus.map(0x200, Rc::new(RefCell::new(Ram::<0x100>::new())));
     }
 
     #[test]
@@ -123,7 +123,7 @@ mod tests {
         let d0 = Rc::new(RefCell::new(Box::from([0; 0x100])));
         bus.map(0x000, d0.clone());
         bus.map(0x100, Rc::new(RefCell::new(vec![0; 0x100])));
-        bus.map(0x200, Rc::new(RefCell::new(Memory::<0x100>::new())));
+        bus.map(0x200, Rc::new(RefCell::new(Ram::<0x100>::new())));
         bus.unmap(0x000, d0);
         bus.read(0x000);
     }
@@ -141,37 +141,37 @@ mod tests {
         // Add device 0
         const N0: usize = 0x0;
         const A0: usize = 0x1000;
-        let d0 = Memory::<N0>::from(&[0xaa; N0]);
+        let d0 = Ram::<N0>::from(&[0xaa; N0]);
         bus.map(A0, Rc::new(RefCell::new(d0)));
         assert_eq!(bus.len(), N0);
         // Add device 1
         const N1: usize = 0x1;
         const A1: usize = A0 + N0;
-        let d1 = Memory::<N1>::from(&[0xbb; N1]);
+        let d1 = Ram::<N1>::from(&[0xbb; N1]);
         bus.map(A0, Rc::new(RefCell::new(d1)));
         assert_eq!(bus.len(), N0 + N1);
         // Add device 2
         const N2: usize = 0x10;
         const A2: usize = A1 + N1;
-        let d2 = Memory::<N2>::from(&[0xcc; N2]);
+        let d2 = Ram::<N2>::from(&[0xcc; N2]);
         bus.map(A2, Rc::new(RefCell::new(d2)));
         assert_eq!(bus.len(), N0 + N1 + N2);
         // Add device 3
         const N3: usize = 0x100;
         const A3: usize = A2 + N2;
-        let d3 = Memory::<N3>::from(&[0xdd; N3]);
+        let d3 = Ram::<N3>::from(&[0xdd; N3]);
         bus.map(A3, Rc::new(RefCell::new(d3)));
         assert_eq!(bus.len(), N0 + N1 + N2 + N3);
         // Add device 4
         const N4: usize = 0x1000;
         const A4: usize = 0x0000;
-        let d4 = Memory::<N4>::from(&[0xee; N4]);
+        let d4 = Ram::<N4>::from(&[0xee; N4]);
         bus.map(A4, Rc::new(RefCell::new(d4)));
         assert_eq!(bus.len(), N0 + N1 + N2 + N3 + N4);
         // Add device 5
         const N5: usize = 0x10000;
         const A5: usize = A4;
-        let d5 = Memory::<N5>::from(&[0xff; N5]);
+        let d5 = Ram::<N5>::from(&[0xff; N5]);
         bus.map(A5, Rc::new(RefCell::new(d5)));
         assert_eq!(bus.len(), N5);
     }
@@ -218,32 +218,32 @@ mod tests {
         // Add device 0
         const N0: usize = 0x0;
         const A0: usize = 0x1000;
-        let d0 = Memory::<N0>::from(&[0xaa; N0]);
+        let d0 = Ram::<N0>::from(&[0xaa; N0]);
         bus.map(A0, Rc::new(RefCell::new(d0)));
         // Add device 1
         const N1: usize = 0x1;
         const A1: usize = A0 + N0;
-        let d1 = Memory::<N1>::from(&[0xbb; N1]);
+        let d1 = Ram::<N1>::from(&[0xbb; N1]);
         bus.map(A0, Rc::new(RefCell::new(d1)));
         // Add device 2
         const N2: usize = 0x10;
         const A2: usize = A1 + N1;
-        let d2 = Memory::<N2>::from(&[0xcc; N2]);
+        let d2 = Ram::<N2>::from(&[0xcc; N2]);
         bus.map(A2, Rc::new(RefCell::new(d2)));
         // Add device 3
         const N3: usize = 0x100;
         const A3: usize = A2 + N2;
-        let d3 = Memory::<N3>::from(&[0xdd; N3]);
+        let d3 = Ram::<N3>::from(&[0xdd; N3]);
         bus.map(A3, Rc::new(RefCell::new(d3)));
         // Add device 4
         const N4: usize = 0x1000;
         const A4: usize = 0x0000;
-        let d4 = Memory::<N4>::from(&[0xee; N4]);
+        let d4 = Ram::<N4>::from(&[0xee; N4]);
         bus.map(A4, Rc::new(RefCell::new(d4)));
         // Add device 5
         const N5: usize = 0x10000;
         const A5: usize = A4;
-        let d5 = Memory::<N5>::from(&[0xff; N5]);
+        let d5 = Ram::<N5>::from(&[0xff; N5]);
         bus.map(A5, Rc::new(RefCell::new(d5)));
 
         // Check if it is accessed properly...
