@@ -1,3 +1,15 @@
+//! Basic memory models.
+//!
+//! # Usage
+//!
+//! The [`Ram`] and [`Rom`] memory models work similarly to one another, with
+//! the obvious exception that [`Rom`] ignores all writes. As both implement
+//! [`Deref`](std::ops::Deref) into a `[u8]`, all expected [`std::slice`]
+//! functions are available.
+//!
+//! Additionally, both models implement [`Device`](crate::dev::Device), allowing
+//! them to be mapped to another address space.
+
 pub use self::ram::Ram;
 pub use self::rom::Rom;
 
@@ -5,6 +17,7 @@ mod ram {
     use std::fmt::{Debug, Display};
     use std::ops::{Deref, DerefMut};
 
+    /// Random-access memory model.
     #[derive(Debug)]
     pub struct Ram<const N: usize>([u8; N]);
 
@@ -94,6 +107,7 @@ mod rom {
 
     use crate::dev::Device;
 
+    /// Read-only memory model.
     #[derive(Debug)]
     pub struct Rom<const N: usize>([u8; N]);
 

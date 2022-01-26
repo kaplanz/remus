@@ -1,3 +1,14 @@
+//! # Rust Emulation Suite
+//! > Modular emulator creation toolkit
+//!
+//! Remus provides the basic primitives for the creation of emulators. These
+//! building blocks can be remixed to emulate a variety of systems.
+//!
+//! # Examples
+//!
+//! For an example of how to use Remus, consult
+//! <https://github.com/zakharykaplan/gameboy>.
+
 pub mod bus;
 pub mod dev;
 pub mod mem;

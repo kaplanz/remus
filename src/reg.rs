@@ -1,8 +1,23 @@
+//! Basic register models.
+//!
+//! # Usage
+//!
+//! The [`Register`] model should be used as a quick memory cell. It is generic
+//! over the `const N: usize` values `[1, 2, 4, 8, 16]`, representing registers
+//! of types `[u8, u16, u32, u64, u128]` respectively.
+//!
+//! To access as the represented type, access using [`Register::get()`] and
+//! [`Register::set()`].
+//!
+//! Since [`Register`] implements [`Device`](crate::dev::Device), it may be
+//! mapped to another address space using a [`Bus`](crate::bus::Bus).
+
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
+/// Register model.
 #[derive(Debug)]
 pub struct Register<const N: usize>([u8; N]);
 

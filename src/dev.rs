@@ -1,6 +1,16 @@
+//! Generic memory mapped device.
+//!
+//! # Usage
+//!
+//! The [`Device`] trait is useful in combination with [`Bus`](crate::bus::Bus).
+//! Together, they can be used to emulate the behaviour of [memory-mapped I/O].
+//!
+//! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
+
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
+/// Memory-mapped I/O device.
 pub trait Device: Debug {
     fn len(&self) -> usize;
 

@@ -1,3 +1,15 @@
+//! Memory interface bus.
+//!
+//! # Usage
+//!
+//! The [`Bus`] trait allows the user to mount another [`Device`] to
+//! anywhere within the address space. As it itself implements [`Device`], it
+//! may be mapped in a nested fashion.
+//!
+//! This is the primary method of emulating [memory-mapped I/O].
+//!
+//! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
+
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
@@ -7,6 +19,7 @@ use crate::dev::Device;
 
 type DynDevice = Rc<RefCell<dyn Device>>;
 
+/// Memory interface bus.
 #[derive(Debug, Default)]
 pub struct Bus {
     maps: BTreeMap<usize, Vec<DynDevice>>,
