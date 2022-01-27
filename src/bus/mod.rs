@@ -6,7 +6,8 @@
 //! anywhere within the address space. As it itself implements [`Device`], it
 //! may be mapped in a nested fashion.
 //!
-//! This is the primary method of emulating [memory-mapped I/O].
+//! Together with the [`adapters`], [`Bus`] is the primary method of emulating
+//! [memory-mapped I/O].
 //!
 //! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
 
@@ -16,6 +17,8 @@ use std::fmt::Debug;
 use std::rc::Rc;
 
 use crate::dev::Device;
+
+pub mod adapters;
 
 type DynDevice = Rc<RefCell<dyn Device>>;
 
