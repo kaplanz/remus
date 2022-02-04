@@ -11,9 +11,11 @@
 //! the devices they modify through an `Rc<RefCell<dyn Device>>`, allowing for
 //! sharing and reuse elsewhere.
 
+pub use self::bank::Bank;
 pub use self::remap::Remap;
 pub use self::view::View;
 use super::DynDevice;
 
+mod bank;
 mod remap;
 mod view;
