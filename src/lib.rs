@@ -15,6 +15,7 @@ pub use fsm::Machine;
 
 mod blk;
 pub mod bus;
+pub mod clk;
 pub mod dev;
 mod fsm;
 pub mod mem;
