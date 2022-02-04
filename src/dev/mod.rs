@@ -18,23 +18,24 @@ mod random;
 
 /// Memory-mapped I/O device.
 pub trait Device: Debug {
-    fn len(&self) -> usize;
+    /// Check if the [`Device`] contains the provided index within its address
+    /// space for performing [`read`](Device::read)s and
+    /// [`write`](Device::write)s.
+    fn contains(&self, index: usize) -> bool;
 
+    /// Perform a read of the byte at the specified address.
     fn read(&self, index: usize) -> u8;
 
+    /// Perform a write to the byte at the specified address.
     fn write(&mut self, index: usize, value: u8);
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
 }
 
 impl<T> Device for T
 where
     T: Debug + Deref<Target = [u8]> + DerefMut,
 {
-    fn len(&self) -> usize {
-        <[u8]>::len(self)
+    fn contains(&self, index: usize) -> bool {
+        (0..<[u8]>::len(self)).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {

@@ -1,16 +1,25 @@
 use std::fmt::{Debug, Display};
 use std::ops::Deref;
 
+use crate::blk::Block;
 use crate::dev::Device;
 use crate::mem::Memory;
 
 /// Read-only memory model.
+///
+/// Panics on [`write`](Rom::write).
 #[derive(Debug)]
 pub struct Rom<const N: usize>([u8; N]);
 
 impl<const N: usize> Rom<N> {
     pub fn new() -> Self {
         Default::default()
+    }
+}
+
+impl<const N: usize> Block for Rom<N> {
+    fn reset(&mut self) {
+        std::mem::take(self);
     }
 }
 
@@ -29,8 +38,8 @@ impl<const N: usize> Deref for Rom<N> {
 }
 
 impl<const N: usize> Device for Rom<N> {
-    fn len(&self) -> usize {
-        <[u8]>::len(self)
+    fn contains(&self, index: usize) -> bool {
+        (0..<[u8]>::len(self)).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -95,30 +104,30 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
+    fn device_contains_works() {
         const N0: usize = 0x0;
         let rom = Rom::<N0>::new();
-        assert_eq!(rom.len(), N0);
+        (0..N0).for_each(|addr| assert!(rom.contains(addr)));
 
         const N1: usize = 0x1;
         let rom = Rom::<N1>::new();
-        assert_eq!(rom.len(), N1);
+        (0..N1).for_each(|addr| assert!(rom.contains(addr)));
 
         const N2: usize = 0x10;
         let rom = Rom::<N2>::new();
-        assert_eq!(rom.len(), N2);
+        (0..N2).for_each(|addr| assert!(rom.contains(addr)));
 
         const N3: usize = 0x100;
         let rom = Rom::<N3>::new();
-        assert_eq!(rom.len(), N3);
+        (0..N3).for_each(|addr| assert!(rom.contains(addr)));
 
         const N4: usize = 0x1000;
         let rom = Rom::<N4>::new();
-        assert_eq!(rom.len(), N4);
+        (0..N4).for_each(|addr| assert!(rom.contains(addr)));
 
         const N5: usize = 0x10000;
         let rom = Rom::<N5>::new();
-        assert_eq!(rom.len(), N5);
+        (0..N5).for_each(|addr| assert!(rom.contains(addr)));
     }
 
     #[test]

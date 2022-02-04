@@ -7,6 +7,8 @@ use super::Device;
 /// The [`Random`] device ignores all writes, and always yields random "garbage"
 /// values when read. This can be useful to allow memory accesses to an unmapped
 /// region of memory without causing a panic.
+///
+/// As its name suggests, [`Random`] yields a random value when read.
 #[derive(Debug, Default)]
 pub struct Random<const N: usize>();
 
@@ -17,8 +19,8 @@ impl<const N: usize> Random<N> {
 }
 
 impl<const N: usize> Device for Random<N> {
-    fn len(&self) -> usize {
-        N
+    fn contains(&self, index: usize) -> bool {
+        (0..N).contains(&index)
     }
 
     fn read(&self, _index: usize) -> u8 {
@@ -48,30 +50,30 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
+    fn device_contains_works() {
         const N0: usize = 0x0;
         let random = Random::<N0>::new();
-        assert_eq!(random.len(), N0);
+        (0..N0).for_each(|addr| assert!(random.contains(addr)));
 
         const N1: usize = 0x1;
         let random = Random::<N1>::new();
-        assert_eq!(random.len(), N1);
+        (0..N1).for_each(|addr| assert!(random.contains(addr)));
 
         const N2: usize = 0x10;
         let random = Random::<N2>::new();
-        assert_eq!(random.len(), N2);
+        (0..N2).for_each(|addr| assert!(random.contains(addr)));
 
         const N3: usize = 0x100;
         let random = Random::<N3>::new();
-        assert_eq!(random.len(), N3);
+        (0..N3).for_each(|addr| assert!(random.contains(addr)));
 
         const N4: usize = 0x1000;
         let random = Random::<N4>::new();
-        assert_eq!(random.len(), N4);
+        (0..N4).for_each(|addr| assert!(random.contains(addr)));
 
         const N5: usize = 0x10000;
         let random = Random::<N5>::new();
-        assert_eq!(random.len(), N5);
+        (0..N5).for_each(|addr| assert!(random.contains(addr)));
     }
 
     #[test]

@@ -10,6 +10,7 @@
 //! <https://github.com/zakharykaplan/gameboy>.
 
 pub use blk::Block;
+pub use dev::Device;
 pub use fsm::Machine;
 
 mod blk;

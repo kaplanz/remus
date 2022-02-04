@@ -8,8 +8,8 @@ use super::Device;
 /// values when read. This can be useful to allow memory accesses to an unmapped
 /// region of memory without causing a panic.
 ///
-/// [`Null`] defaults to yielding `0x00` when read, but this can be changed
-/// either by initializing with [`Null::with()`], or through the
+/// [`Null`] defaults to yielding the null byte (`0x00`) when read, but this can
+/// be changed either by initializing using [`Null::with()`], or through the
 /// [`Null::read_as()`] method at runtime.
 #[derive(Debug, Default)]
 pub struct Null<const N: usize>(u8);
@@ -19,18 +19,21 @@ impl<const N: usize> Null<N> {
         Self::default()
     }
 
+    /// Construct an instance of [`Null`] that yields the specified byte when
+    /// performing a read.
     pub fn with(read_as: u8) -> Self {
         Self(read_as)
     }
 
+    /// Set the value to be used when performing a read.
     pub fn read_as(&mut self, byte: u8) {
         self.0 = byte;
     }
 }
 
 impl<const N: usize> Device for Null<N> {
-    fn len(&self) -> usize {
-        N
+    fn contains(&self, index: usize) -> bool {
+        (0..N).contains(&index)
     }
 
     fn read(&self, _index: usize) -> u8 {
@@ -71,30 +74,30 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
+    fn device_contains_works() {
         const N0: usize = 0x0;
         let null = Null::<N0>::new();
-        assert_eq!(null.len(), N0);
+        (0..N0).for_each(|addr| assert!(null.contains(addr)));
 
         const N1: usize = 0x1;
         let null = Null::<N1>::new();
-        assert_eq!(null.len(), N1);
+        (0..N1).for_each(|addr| assert!(null.contains(addr)));
 
         const N2: usize = 0x10;
         let null = Null::<N2>::new();
-        assert_eq!(null.len(), N2);
+        (0..N2).for_each(|addr| assert!(null.contains(addr)));
 
         const N3: usize = 0x100;
         let null = Null::<N3>::new();
-        assert_eq!(null.len(), N3);
+        (0..N3).for_each(|addr| assert!(null.contains(addr)));
 
         const N4: usize = 0x1000;
         let null = Null::<N4>::new();
-        assert_eq!(null.len(), N4);
+        (0..N4).for_each(|addr| assert!(null.contains(addr)));
 
         const N5: usize = 0x10000;
         let null = Null::<N5>::new();
-        assert_eq!(null.len(), N5);
+        (0..N5).for_each(|addr| assert!(null.contains(addr)));
     }
 
     #[test]

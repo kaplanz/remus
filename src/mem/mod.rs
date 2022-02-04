@@ -20,6 +20,13 @@ use crate::dev::Device;
 mod ram;
 mod rom;
 
+/// Generic memory model.
+///
+/// [`Memory`] implements [`Display`] in such a way that may be convenient for
+/// implementers.
+///
+/// Additionally, it enforces [`Deref`] and [`Device`], allowing any other types
+/// which do so to trivially implement [`Memory`].
 pub trait Memory: Deref<Target = [u8]> + Device {}
 
 impl Display for dyn Memory {

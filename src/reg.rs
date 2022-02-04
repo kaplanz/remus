@@ -53,8 +53,8 @@ impl<U: Unsigned> From<U> for Register<U> {
 }
 
 impl Device for Register<u8> {
-    fn len(&self) -> usize {
-        std::mem::size_of::<Self>()
+    fn contains(&self, index: usize) -> bool {
+        (0..std::mem::size_of::<Self>()).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -69,8 +69,8 @@ impl Device for Register<u8> {
 }
 
 impl Device for Register<u16> {
-    fn len(&self) -> usize {
-        std::mem::size_of::<Self>()
+    fn contains(&self, index: usize) -> bool {
+        (0..std::mem::size_of::<Self>()).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -85,8 +85,8 @@ impl Device for Register<u16> {
 }
 
 impl Device for Register<u32> {
-    fn len(&self) -> usize {
-        std::mem::size_of::<Self>()
+    fn contains(&self, index: usize) -> bool {
+        (0..std::mem::size_of::<Self>()).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -101,8 +101,8 @@ impl Device for Register<u32> {
 }
 
 impl Device for Register<u64> {
-    fn len(&self) -> usize {
-        std::mem::size_of::<Self>()
+    fn contains(&self, index: usize) -> bool {
+        (0..std::mem::size_of::<Self>()).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -117,8 +117,8 @@ impl Device for Register<u64> {
 }
 
 impl Device for Register<u128> {
-    fn len(&self) -> usize {
-        std::mem::size_of::<Self>()
+    fn contains(&self, index: usize) -> bool {
+        (0..std::mem::size_of::<Self>()).contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -243,12 +243,12 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
-        assert_eq!(Register::<u8>::new().len(), 1);
-        assert_eq!(Register::<u16>::new().len(), 2);
-        assert_eq!(Register::<u32>::new().len(), 4);
-        assert_eq!(Register::<u64>::new().len(), 8);
-        assert_eq!(Register::<u128>::new().len(), 16);
+    fn device_contains_works() {
+        (0..1).for_each(|addr| assert!(Register::<u8>::new().contains(addr)));
+        (0..2).for_each(|addr| assert!(Register::<u16>::new().contains(addr)));
+        (0..4).for_each(|addr| assert!(Register::<u32>::new().contains(addr)));
+        (0..8).for_each(|addr| assert!(Register::<u64>::new().contains(addr)));
+        (0..16).for_each(|addr| assert!(Register::<u128>::new().contains(addr)));
     }
 
     #[test]

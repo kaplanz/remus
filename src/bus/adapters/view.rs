@@ -1,4 +1,5 @@
-use std::ops::Range;
+use std::fmt::Debug;
+use std::ops::{Bound, RangeBounds};
 
 use super::DynDevice;
 use crate::dev::Device;
@@ -7,30 +8,35 @@ use crate::dev::Device;
 ///
 /// # Usage
 ///
-/// The [`View`] device adapter allows access some or all of the underlying
-/// device, remapping the starting address to zero.
+/// The [`View`] device adapter allows access to a slice of the underlying
+/// device, while remapping the starting address to zero.
 ///
-/// In conjunction with [`super::Remap`], devices can be partially or completely mapped
-/// into another address space as desired.
+/// In conjunction with [`Remap`](super::Remap), devices can be partially or
+/// completely mapped into another address space as desired.
 #[derive(Debug)]
-pub struct View {
+pub struct View<R: Debug + RangeBounds<usize>> {
     dev: DynDevice,
-    range: Range<usize>,
+    range: R,
 }
 
-impl View {
-    pub fn new(dev: DynDevice, range: Range<usize>) -> Self {
+impl<R: Debug + RangeBounds<usize>> View<R> {
+    pub fn new(dev: DynDevice, range: R) -> Self {
         Self { dev, range }
     }
 }
 
-impl Device for View {
-    fn len(&self) -> usize {
-        self.range.end - self.range.start
+impl<R: Debug + RangeBounds<usize>> Device for View<R> {
+    fn contains(&self, index: usize) -> bool {
+        self.range.contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
-        let index = self.range.start + index;
+        let index = index
+            + match self.range.start_bound() {
+                Bound::Included(start) => *start,
+                Bound::Excluded(start) => *start + 1,
+                Bound::Unbounded => 0,
+            };
         if self.range.contains(&index) {
             self.dev.borrow().read(index)
         } else {
@@ -39,11 +45,16 @@ impl Device for View {
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let index = self.range.start + index;
+        let index = index
+            + match self.range.start_bound() {
+                Bound::Included(start) => *start,
+                Bound::Excluded(start) => *start + 1,
+                Bound::Unbounded => 0,
+            };
         if self.range.contains(&index) {
             self.dev.borrow_mut().write(index, value);
         } else {
-            panic!("`<View as Device>::read()`: index out of bounds");
+            panic!("`<View as Device>::write()`: index out of bounds");
         }
     }
 }
@@ -63,17 +74,27 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
+    fn device_contains_works() {
+        // Exclusive bound
         let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
         let view = View::new(ram, 0x40..0xc0);
-        assert_eq!(view.len(), 0x80);
+        (0x00..=0x3f).for_each(|addr| assert!(!view.contains(addr)));
+        (0x40..=0xbf).for_each(|addr| assert!(view.contains(addr)));
+        (0xc0..=0xff).for_each(|addr| assert!(!view.contains(addr)));
+
+        // Inclusive bound
+        let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
+        let view = View::new(ram, 0x40..=0xbf);
+        (0x00..=0x3f).for_each(|addr| assert!(!view.contains(addr)));
+        (0x40..=0xbf).for_each(|addr| assert!(view.contains(addr)));
+        (0xc0..=0xff).for_each(|addr| assert!(!view.contains(addr)));
     }
 
     #[test]
     fn device_read_works() {
         let ram = Rc::new(RefCell::new(Ram::<0x100>::from(&[0xaa; 0x100])));
         let view = View::new(ram, 0x40..0xc0);
-        (0..view.len()).for_each(|addr| {
+        (0..0x80).for_each(|addr| {
             assert_eq!(view.read(addr), 0xaa);
         });
     }
@@ -82,7 +103,7 @@ mod tests {
     fn device_write_works() {
         let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
         let mut view = View::new(ram.clone(), 0x40..0xc0);
-        (0..view.len()).for_each(|addr| {
+        (0x000..0x080).for_each(|addr| {
             view.write(addr, 0xaa);
         });
         (0x000..0x040).for_each(|addr| {

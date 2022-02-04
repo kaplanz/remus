@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::ops::{Deref, DerefMut};
 
+use crate::blk::Block;
 use crate::mem::Memory;
 
 /// Random-access memory model.
@@ -10,6 +11,12 @@ pub struct Ram<const N: usize>([u8; N]);
 impl<const N: usize> Ram<N> {
     pub fn new() -> Self {
         Default::default()
+    }
+}
+
+impl<const N: usize> Block for Ram<N> {
+    fn reset(&mut self) {
+        std::mem::take(self);
     }
 }
 
@@ -83,30 +90,30 @@ mod tests {
     }
 
     #[test]
-    fn device_len_works() {
+    fn device_contains_works() {
         const N0: usize = 0x0;
         let ram = Ram::<N0>::new();
-        assert_eq!(ram.len(), N0);
+        (0..N0).for_each(|addr| assert!(ram.contains(addr)));
 
         const N1: usize = 0x1;
         let ram = Ram::<N1>::new();
-        assert_eq!(ram.len(), N1);
+        (0..N1).for_each(|addr| assert!(ram.contains(addr)));
 
         const N2: usize = 0x10;
         let ram = Ram::<N2>::new();
-        assert_eq!(ram.len(), N2);
+        (0..N2).for_each(|addr| assert!(ram.contains(addr)));
 
         const N3: usize = 0x100;
         let ram = Ram::<N3>::new();
-        assert_eq!(ram.len(), N3);
+        (0..N3).for_each(|addr| assert!(ram.contains(addr)));
 
         const N4: usize = 0x1000;
         let ram = Ram::<N4>::new();
-        assert_eq!(ram.len(), N4);
+        (0..N4).for_each(|addr| assert!(ram.contains(addr)));
 
         const N5: usize = 0x10000;
         let ram = Ram::<N5>::new();
-        assert_eq!(ram.len(), N5);
+        (0..N5).for_each(|addr| assert!(ram.contains(addr)));
     }
 
     #[test]
