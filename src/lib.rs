@@ -9,6 +9,9 @@
 //! For an example of how to use Remus, consult
 //! <https://github.com/zakharykaplan/gameboy>.
 
+pub use blk::Block;
+
+mod blk;
 pub mod bus;
 pub mod dev;
 pub mod mem;
