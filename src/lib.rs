@@ -10,9 +10,11 @@
 //! <https://github.com/zakharykaplan/gameboy>.
 
 pub use blk::Block;
+pub use fsm::Machine;
 
 mod blk;
 pub mod bus;
 pub mod dev;
+mod fsm;
 pub mod mem;
 pub mod reg;
