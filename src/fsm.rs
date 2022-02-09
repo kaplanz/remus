@@ -1,5 +1,7 @@
+use crate::blk::Block;
+
 /// Finite-state machine.
-pub trait Machine {
+pub trait Machine: Block {
     /// Prepare the [`Machine`] to for running, which may or may not enable it.
     ///
     /// The default implementation does nothing.

@@ -1,3 +1,6 @@
+use std::fmt::Debug;
+use std::ops::{Deref, DerefMut};
+
 /// Integrated circuit block.
 pub trait Block {
     /// Perform a reset on this [`Block`].
@@ -9,4 +12,13 @@ pub trait Block {
     ///       of the emulator, accessing data after a reset may be considered
     ///       undefined behaviour.
     fn reset(&mut self) {}
+}
+
+impl<T> Block for T
+where
+    T: Debug + Default + Deref<Target = [u8]> + DerefMut,
+{
+    fn reset(&mut self) {
+        std::mem::take(self);
+    }
 }

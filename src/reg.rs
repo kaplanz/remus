@@ -20,6 +20,7 @@ use std::ops::{Deref, DerefMut};
 
 use num::Unsigned;
 
+use crate::blk::Block;
 use crate::dev::Device;
 
 /// Register model.
@@ -29,6 +30,12 @@ pub struct Register<U: Unsigned>(U);
 impl<U: Default + Unsigned> Register<U> {
     pub fn new() -> Self {
         Default::default()
+    }
+}
+
+impl<U: Default + Unsigned> Block for Register<U> {
+    fn reset(&mut self) {
+        std::mem::take(self);
     }
 }
 

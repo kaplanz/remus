@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::ops::{Bound, RangeBounds};
 
 use super::DynDevice;
+use crate::blk::Block;
 use crate::dev::Device;
 
 /// View device adapter.
@@ -24,6 +25,8 @@ impl<R: Debug + RangeBounds<usize>> View<R> {
         Self { dev, range }
     }
 }
+
+impl<R: Debug + RangeBounds<usize>> Block for View<R> {}
 
 impl<R: Debug + RangeBounds<usize>> Device for View<R> {
     fn contains(&self, index: usize) -> bool {

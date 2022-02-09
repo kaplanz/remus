@@ -1,4 +1,5 @@
 use super::Device;
+use crate::blk::Block;
 
 /// Random device.
 ///
@@ -17,6 +18,8 @@ impl<const N: usize> Random<N> {
         Self::default()
     }
 }
+
+impl<const N: usize> Block for Random<N> {}
 
 impl<const N: usize> Device for Random<N> {
     fn contains(&self, index: usize) -> bool {

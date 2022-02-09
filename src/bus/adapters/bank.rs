@@ -1,4 +1,5 @@
 use super::DynDevice;
+use crate::blk::Block;
 use crate::dev::Device;
 
 /// Bank device adapter.
@@ -18,6 +19,12 @@ pub struct Bank {
 impl Bank {
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl Block for Bank {
+    fn reset(&mut self) {
+        std::mem::take(self);
     }
 }
 

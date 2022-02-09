@@ -1,4 +1,5 @@
 use super::DynDevice;
+use crate::blk::Block;
 use crate::dev::Device;
 
 /// Remap device adapter.
@@ -21,6 +22,8 @@ impl Remap {
         Self { offset, dev }
     }
 }
+
+impl Block for Remap {}
 
 impl Device for Remap {
     fn contains(&self, index: usize) -> bool {

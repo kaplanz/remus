@@ -1,4 +1,5 @@
 use super::Device;
+use crate::blk::Block;
 
 /// Null device.
 ///
@@ -30,6 +31,8 @@ impl<const N: usize> Null<N> {
         self.0 = byte;
     }
 }
+
+impl<const N: usize> Block for Null<N> {}
 
 impl<const N: usize> Device for Null<N> {
     fn contains(&self, index: usize) -> bool {

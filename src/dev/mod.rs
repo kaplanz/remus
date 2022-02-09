@@ -12,12 +12,13 @@ use std::ops::{Deref, DerefMut};
 
 pub use self::null::Null;
 pub use self::random::Random;
+use crate::blk::Block;
 
 mod null;
 mod random;
 
 /// Memory-mapped I/O device.
-pub trait Device: Debug {
+pub trait Device: Block + Debug {
     /// Check if the [`Device`] contains the provided index within its address
     /// space for performing [`read`](Device::read)s and
     /// [`write`](Device::write)s.
@@ -32,7 +33,7 @@ pub trait Device: Debug {
 
 impl<T> Device for T
 where
-    T: Debug + Deref<Target = [u8]> + DerefMut,
+    T: Block + Debug + Deref<Target = [u8]> + DerefMut,
 {
     fn contains(&self, index: usize) -> bool {
         (0..<[u8]>::len(self)).contains(&index)
@@ -44,5 +45,27 @@ where
 
     fn write(&mut self, index: usize, value: u8) {
         self[index] = value;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn device_contains_works() {
+        (0..0x100).for_each(|index| assert!(Device::contains(&vec![0xaau8; 0x100], index)));
+    }
+
+    #[test]
+    fn device_read_works() {
+        (0..0x100).for_each(|index| assert_eq!(vec![0xaau8; 0x100].read(index), 0xaa));
+    }
+
+    #[test]
+    fn device_write_works() {
+        let mut dev = vec![0u8; 0x100];
+        (0..0x100).for_each(|index| dev.write(index, 0xaa));
+        (0..0x100).for_each(|index| assert_eq!(vec![0xaau8; 0x100].read(index), 0xaa));
     }
 }
