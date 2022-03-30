@@ -24,22 +24,27 @@ impl<R: Debug + RangeBounds<usize>> View<R> {
     pub fn new(dev: DynDevice, range: R) -> Self {
         Self { dev, range }
     }
+
+    fn translate(&self, index: usize) -> usize {
+        index
+            + match self.range.start_bound() {
+                Bound::Included(&start) => start,
+                Bound::Excluded(&start) => start + 1,
+                Bound::Unbounded => 0,
+            }
+    }
 }
 
 impl<R: Debug + RangeBounds<usize>> Block for View<R> {}
 
 impl<R: Debug + RangeBounds<usize>> Device for View<R> {
     fn contains(&self, index: usize) -> bool {
+        let index = self.translate(index);
         self.range.contains(&index)
     }
 
     fn read(&self, index: usize) -> u8 {
-        let index = index
-            + match self.range.start_bound() {
-                Bound::Included(start) => *start,
-                Bound::Excluded(start) => *start + 1,
-                Bound::Unbounded => 0,
-            };
+        let index = self.translate(index);
         if self.range.contains(&index) {
             self.dev.borrow().read(index)
         } else {
@@ -48,12 +53,7 @@ impl<R: Debug + RangeBounds<usize>> Device for View<R> {
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let index = index
-            + match self.range.start_bound() {
-                Bound::Included(start) => *start,
-                Bound::Excluded(start) => *start + 1,
-                Bound::Unbounded => 0,
-            };
+        let index = self.translate(index);
         if self.range.contains(&index) {
             self.dev.borrow_mut().write(index, value);
         } else {
@@ -81,16 +81,14 @@ mod tests {
         // Exclusive bound
         let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
         let view = View::new(ram, 0x40..0xc0);
-        (0x00..=0x3f).for_each(|addr| assert!(!view.contains(addr)));
-        (0x40..=0xbf).for_each(|addr| assert!(view.contains(addr)));
-        (0xc0..=0xff).for_each(|addr| assert!(!view.contains(addr)));
+        (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
+        (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
 
         // Inclusive bound
         let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
         let view = View::new(ram, 0x40..=0xbf);
-        (0x00..=0x3f).for_each(|addr| assert!(!view.contains(addr)));
-        (0x40..=0xbf).for_each(|addr| assert!(view.contains(addr)));
-        (0xc0..=0xff).for_each(|addr| assert!(!view.contains(addr)));
+        (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
+        (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
     }
 
     #[test]
