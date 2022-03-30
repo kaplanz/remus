@@ -144,15 +144,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn size_of_works() {
-        assert_eq!(std::mem::size_of::<Register::<u8>>(), 1);
-        assert_eq!(std::mem::size_of::<Register::<u16>>(), 2);
-        assert_eq!(std::mem::size_of::<Register::<u32>>(), 4);
-        assert_eq!(std::mem::size_of::<Register::<u64>>(), 8);
-        assert_eq!(std::mem::size_of::<Register::<u128>>(), 16);
-    }
-
-    #[test]
     fn new_works() {
         // 8-bit register
         let r8 = Register::<u8>::new();

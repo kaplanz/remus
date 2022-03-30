@@ -51,16 +51,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn size_of_works() {
-        assert_eq!(std::mem::size_of::<Null::<0x0>>(), 1);
-        assert_eq!(std::mem::size_of::<Null::<0x1>>(), 1);
-        assert_eq!(std::mem::size_of::<Null::<0x10>>(), 1);
-        assert_eq!(std::mem::size_of::<Null::<0x100>>(), 1);
-        assert_eq!(std::mem::size_of::<Null::<0x1000>>(), 1);
-        assert_eq!(std::mem::size_of::<Null::<0x10000>>(), 1);
-    }
-
-    #[test]
     fn new_works() {
         let null = Null::<0x100>::new();
         assert!((0x000..0x100)

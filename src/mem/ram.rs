@@ -53,16 +53,6 @@ mod tests {
     use crate::dev::Device;
 
     #[test]
-    fn size_of_works() {
-        assert_eq!(std::mem::size_of::<Ram::<0x0>>(), 0x0);
-        assert_eq!(std::mem::size_of::<Ram::<0x1>>(), 0x1);
-        assert_eq!(std::mem::size_of::<Ram::<0x10>>(), 0x10);
-        assert_eq!(std::mem::size_of::<Ram::<0x100>>(), 0x100);
-        assert_eq!(std::mem::size_of::<Ram::<0x1000>>(), 0x1000);
-        assert_eq!(std::mem::size_of::<Ram::<0x10000>>(), 0x10000);
-    }
-
-    #[test]
     fn new_works() {
         let ram = Ram::<0x100>::new();
         assert!(ram.iter().all(|&byte| byte == 0));

@@ -74,16 +74,6 @@ mod tests {
     use crate::dev::Device;
 
     #[test]
-    fn size_of_works() {
-        assert_eq!(std::mem::size_of::<Rom::<0x0>>(), 0x0);
-        assert_eq!(std::mem::size_of::<Rom::<0x1>>(), 0x1);
-        assert_eq!(std::mem::size_of::<Rom::<0x10>>(), 0x10);
-        assert_eq!(std::mem::size_of::<Rom::<0x100>>(), 0x100);
-        assert_eq!(std::mem::size_of::<Rom::<0x1000>>(), 0x1000);
-        assert_eq!(std::mem::size_of::<Rom::<0x10000>>(), 0x10000);
-    }
-
-    #[test]
     fn new_works() {
         let rom = Rom::<0x100>::new();
         assert!(rom.iter().all(|&byte| byte == 0));

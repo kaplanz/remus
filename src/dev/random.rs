@@ -38,16 +38,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn size_of_works() {
-        assert_eq!(std::mem::size_of::<Random::<0x0>>(), 0);
-        assert_eq!(std::mem::size_of::<Random::<0x1>>(), 0);
-        assert_eq!(std::mem::size_of::<Random::<0x10>>(), 0);
-        assert_eq!(std::mem::size_of::<Random::<0x100>>(), 0);
-        assert_eq!(std::mem::size_of::<Random::<0x1000>>(), 0);
-        assert_eq!(std::mem::size_of::<Random::<0x10000>>(), 0);
-    }
-
-    #[test]
     fn new_works() {
         let _ = Random::<0x100>::new();
     }
