@@ -5,7 +5,7 @@ use crate::mem::Memory;
 
 /// Random-access memory model.
 #[derive(Debug)]
-pub struct Ram<const N: usize>([u8; N]);
+pub struct Ram<const N: usize>(Box<[u8; N]>);
 
 impl<const N: usize> Ram<N> {
     pub fn new() -> Self {
@@ -15,7 +15,12 @@ impl<const N: usize> Ram<N> {
 
 impl<const N: usize> Default for Ram<N> {
     fn default() -> Self {
-        Self([Default::default(); N])
+        Self(
+            vec![Default::default(); N]
+                .into_boxed_slice()
+                .try_into()
+                .unwrap(),
+        )
     }
 }
 
@@ -23,13 +28,13 @@ impl<const N: usize> Deref for Ram<N> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &*self.0
     }
 }
 
 impl<const N: usize> DerefMut for Ram<N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut *self.0
     }
 }
 
@@ -41,7 +46,7 @@ impl<const N: usize> Display for Ram<N> {
 
 impl<const N: usize> From<&[u8; N]> for Ram<N> {
     fn from(arr: &[u8; N]) -> Self {
-        Self(*arr)
+        Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
     }
 }
 

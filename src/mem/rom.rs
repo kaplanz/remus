@@ -9,7 +9,7 @@ use crate::mem::Memory;
 ///
 /// Panics on [`write`](Rom::write).
 #[derive(Debug)]
-pub struct Rom<const N: usize>([u8; N]);
+pub struct Rom<const N: usize>(Box<[u8; N]>);
 
 impl<const N: usize> Rom<N> {
     pub fn new() -> Self {
@@ -25,7 +25,12 @@ impl<const N: usize> Block for Rom<N> {
 
 impl<const N: usize> Default for Rom<N> {
     fn default() -> Self {
-        Self([Default::default(); N])
+        Self(
+            vec![Default::default(); N]
+                .into_boxed_slice()
+                .try_into()
+                .unwrap(),
+        )
     }
 }
 
@@ -33,7 +38,7 @@ impl<const N: usize> Deref for Rom<N> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &*self.0
     }
 }
 
@@ -62,7 +67,7 @@ impl<const N: usize> Display for Rom<N> {
 
 impl<const N: usize> From<&[u8; N]> for Rom<N> {
     fn from(arr: &[u8; N]) -> Self {
-        Self(*arr)
+        Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
     }
 }
 
