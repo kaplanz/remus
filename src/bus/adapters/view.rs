@@ -29,7 +29,7 @@ impl<R: Debug + RangeBounds<usize>> View<R> {
         index
             + match self.range.start_bound() {
                 Bound::Included(&start) => start,
-                Bound::Excluded(&start) => start + 1,
+                Bound::Excluded(&start) => start.saturating_add(1),
                 Bound::Unbounded => 0,
             }
     }
@@ -41,6 +41,20 @@ impl<R: Debug + RangeBounds<usize>> Device for View<R> {
     fn contains(&self, index: usize) -> bool {
         let index = self.translate(index);
         self.range.contains(&index)
+    }
+
+    fn len(&self) -> usize {
+        let start = match self.range.start_bound() {
+            Bound::Included(&start) => start,
+            Bound::Excluded(&start) => start.saturating_add(1),
+            Bound::Unbounded => 0,
+        };
+        let end = match self.range.end_bound() {
+            Bound::Included(&end) => end.saturating_add(1),
+            Bound::Excluded(&end) => end,
+            Bound::Unbounded => usize::MAX,
+        };
+        end.saturating_sub(start)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -89,6 +103,17 @@ mod tests {
         let view = View::new(ram, 0x40..=0xbf);
         (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
         (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        let ram = Rc::new(RefCell::new(Ram::<0x10000>::new()));
+        assert_eq!(View::new(ram.clone(), 0..0x0).len(), 0x0);
+        assert_eq!(View::new(ram.clone(), 0..=0x0).len(), 0x1);
+        assert_eq!(View::new(ram.clone(), 0..0x10).len(), 0x10);
+        assert_eq!(View::new(ram.clone(), 0..=0xff).len(), 0x100);
+        assert_eq!(View::new(ram.clone(), 0..0x1000).len(), 0x1000);
+        assert_eq!(View::new(ram, 0..=0xffff).len(), 0x10000);
     }
 
     #[test]

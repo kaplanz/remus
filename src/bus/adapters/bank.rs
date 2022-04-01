@@ -36,6 +36,10 @@ impl Device for Bank {
         }
     }
 
+    fn len(&self) -> usize {
+        self.banks[self.active].borrow().len()
+    }
+
     fn read(&self, index: usize) -> u8 {
         self.banks[self.active].borrow().read(index)
     }
@@ -80,6 +84,20 @@ mod tests {
         // Test bank 0
         bank.active = 2;
         (0x00..=0xff).for_each(|addr| assert!(bank.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        let mut bank = setup();
+        // Test bank 0
+        bank.active = 0;
+        assert_eq!(bank.len(), 0x100);
+        // Test bank 1
+        bank.active = 1;
+        assert_eq!(bank.len(), 0);
+        // Test bank 0
+        bank.active = 2;
+        assert_eq!(bank.len(), 0x100);
     }
 
     #[test]

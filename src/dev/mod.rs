@@ -24,6 +24,14 @@ pub trait Device: Block + Debug {
     /// [`write`](Device::write)s.
     fn contains(&self, index: usize) -> bool;
 
+    /// Returns the length of the [`Device`], in bytes.
+    fn len(&self) -> usize;
+
+    /// Check if the length of the [`Device`] is zero.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Perform a read of the byte at the specified address.
     fn read(&self, index: usize) -> u8;
 
@@ -36,7 +44,11 @@ where
     T: Block + Debug + Deref<Target = [u8]> + DerefMut,
 {
     fn contains(&self, index: usize) -> bool {
-        (0..<[u8]>::len(self)).contains(&index)
+        (0..self.len()).contains(&index)
+    }
+
+    fn len(&self) -> usize {
+        <[u8]>::len(self)
     }
 
     fn read(&self, index: usize) -> u8 {

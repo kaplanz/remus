@@ -44,7 +44,11 @@ impl<const N: usize> Deref for Rom<N> {
 
 impl<const N: usize> Device for Rom<N> {
     fn contains(&self, index: usize) -> bool {
-        (0..<[u8]>::len(self)).contains(&index)
+        (0..self.len()).contains(&index)
+    }
+
+    fn len(&self) -> usize {
+        <[u8]>::len(self)
     }
 
     fn read(&self, index: usize) -> u8 {
@@ -123,6 +127,16 @@ mod tests {
         const N5: usize = 0x10000;
         let rom = Rom::<N5>::new();
         (0..N5).for_each(|addr| assert!(rom.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        assert_eq!(Rom::<0x0>::new().len(), 0x0);
+        assert_eq!(Rom::<0x1>::new().len(), 0x1);
+        assert_eq!(Rom::<0x10>::new().len(), 0x10);
+        assert_eq!(Rom::<0x100>::new().len(), 0x100);
+        assert_eq!(Rom::<0x1000>::new().len(), 0x1000);
+        assert_eq!(Rom::<0x10000>::new().len(), 0x10000);
     }
 
     #[test]

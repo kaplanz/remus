@@ -23,7 +23,11 @@ impl<const N: usize> Block for Random<N> {}
 
 impl<const N: usize> Device for Random<N> {
     fn contains(&self, index: usize) -> bool {
-        (0..N).contains(&index)
+        (0..self.len()).contains(&index)
+    }
+
+    fn len(&self) -> usize {
+        N
     }
 
     fn read(&self, _index: usize) -> u8 {
@@ -67,6 +71,16 @@ mod tests {
         const N5: usize = 0x10000;
         let random = Random::<N5>::new();
         (0..N5).for_each(|addr| assert!(random.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        assert_eq!(Random::<0x0>::new().len(), 0);
+        assert_eq!(Random::<0x1>::new().len(), 0x1);
+        assert_eq!(Random::<0x10>::new().len(), 0x10);
+        assert_eq!(Random::<0x100>::new().len(), 0x100);
+        assert_eq!(Random::<0x1000>::new().len(), 0x1000);
+        assert_eq!(Random::<0x10000>::new().len(), 0x10000);
     }
 
     #[test]

@@ -30,6 +30,10 @@ impl Device for Remap {
         self.dev.borrow().contains(index)
     }
 
+    fn len(&self) -> usize {
+        self.dev.borrow().len()
+    }
+
     fn read(&self, index: usize) -> u8 {
         let index = (index as isize - self.offset) as usize;
         self.dev.borrow().read(index)
@@ -61,6 +65,34 @@ mod tests {
         let remap = Remap::new(0x080, ram);
         (0x00..=0x7f).for_each(|addr| assert!(remap.contains(addr)));
         (0x80..=0xff).for_each(|addr| assert!(remap.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        assert_eq!(
+            Remap::new(0x0, Rc::new(RefCell::new(Ram::<0x0>::new()))).len(),
+            0
+        );
+        assert_eq!(
+            Remap::new(0x8, Rc::new(RefCell::new(Ram::<0x1>::new()))).len(),
+            0x1
+        );
+        assert_eq!(
+            Remap::new(0x80, Rc::new(RefCell::new(Ram::<0x10>::new()))).len(),
+            0x10
+        );
+        assert_eq!(
+            Remap::new(0x800, Rc::new(RefCell::new(Ram::<0x100>::new()))).len(),
+            0x100
+        );
+        assert_eq!(
+            Remap::new(0x8000, Rc::new(RefCell::new(Ram::<0x1000>::new()))).len(),
+            0x1000
+        );
+        assert_eq!(
+            Remap::new(0x80000, Rc::new(RefCell::new(Ram::<0x10000>::new()))).len(),
+            0x10000
+        );
     }
 
     #[test]

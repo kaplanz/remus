@@ -75,6 +75,18 @@ impl Device for Bus {
         }
     }
 
+    fn len(&self) -> usize {
+        let start = *self.maps.keys().next().unwrap_or(&0);
+        let end = self
+            .maps
+            .iter()
+            .flat_map(|(base, devs)| std::iter::repeat(base).zip(devs))
+            .map(|(&base, dev)| base + dev.borrow().len())
+            .max()
+            .unwrap_or(0);
+        end.saturating_sub(start)
+    }
+
     fn read(&self, index: usize) -> u8 {
         let (base, dev) = self.at(index).unwrap();
         dev.borrow().read(index - base)
@@ -221,6 +233,80 @@ mod tests {
         let d5 = Ram::<N5>::from(&[0xff; N5]);
         bus.map(A5, Rc::new(RefCell::new(d5)));
         (A5..N5).for_each(|addr| assert!(bus.contains(addr)));
+    }
+
+    #[test]
+    fn device_len_works() {
+        // Let's create a mapping where a mapped sub-device has holes that
+        // should be covered by another device, mapped elsewhere:
+        // d0: [aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]
+        // d1: [                bbbbbbbb    cccc]
+        let mut bus = Bus::new();
+        // Add device 0
+        let d0 = Ram::<0x1000>::from(&[0xaa; 0x1000]);
+        bus.map(0x0000, Rc::new(RefCell::new(d0)));
+        // Add device 1
+        let mut d1 = Bus::new();
+        d1.map(
+            0x0000,
+            Rc::new(RefCell::new(Ram::<0x0400>::from(&[0xbb; 0x0400]))),
+        );
+        d1.map(
+            0x0600,
+            Rc::new(RefCell::new(Ram::<0x0200>::from(&[0xcc; 0x0200]))),
+        );
+        bus.map(0x0800, Rc::new(RefCell::new(d1)));
+
+        // Let's create a relatively complicated overlapping bus:
+        // d0: [                a                              ]
+        // d1: [                 bb                            ]
+        // d2: [                   cccc                        ]
+        // d3: [                       ddddddddd               ]
+        // d4: [eeeeeeeeeeeeeeee                               ]
+        // d5: [ffffffffffffffffffffffffffffffffffffffffffff...]
+        let mut bus = Bus::new();
+
+        // Add device 0
+        const N0: usize = 0x0;
+        const A0: usize = 0x1000;
+        let d0 = Ram::<N0>::from(&[0xaa; N0]);
+        bus.map(A0, Rc::new(RefCell::new(d0)));
+        assert_eq!(bus.len(), N0);
+
+        // Add device 1
+        const N1: usize = 0x1;
+        const A1: usize = A0 + N0;
+        let d1 = Ram::<N1>::from(&[0xbb; N1]);
+        bus.map(A1, Rc::new(RefCell::new(d1)));
+        assert_eq!(bus.len(), N0 + N1);
+
+        // Add device 2
+        const N2: usize = 0x10;
+        const A2: usize = A1 + N1;
+        let d2 = Ram::<N2>::from(&[0xcc; N2]);
+        bus.map(A2, Rc::new(RefCell::new(d2)));
+        assert_eq!(bus.len(), N0 + N1 + N2);
+
+        // Add device 3
+        const N3: usize = 0x100;
+        const A3: usize = A2 + N2;
+        let d3 = Ram::<N3>::from(&[0xdd; N3]);
+        bus.map(A3, Rc::new(RefCell::new(d3)));
+        assert_eq!(bus.len(), N0 + N1 + N2 + N3);
+
+        // Add device 4
+        const N4: usize = 0x1000;
+        const A4: usize = 0x0;
+        let d4 = Ram::<N4>::from(&[0xee; N4]);
+        bus.map(A4, Rc::new(RefCell::new(d4)));
+        assert_eq!(bus.len(), N4 + N0 + N1 + N2 + N3);
+
+        // Add device 5
+        const N5: usize = 0x2000;
+        const A5: usize = A4;
+        let d5 = Ram::<N5>::from(&[0xff; N5]);
+        bus.map(A5, Rc::new(RefCell::new(d5)));
+        assert_eq!(bus.len(), N5);
     }
 
     #[test]
