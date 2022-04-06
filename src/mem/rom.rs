@@ -75,8 +75,6 @@ impl<const N: usize> From<&[u8; N]> for Rom<N> {
     }
 }
 
-impl<const N: usize> Memory for Rom<N> {}
-
 #[cfg(test)]
 mod tests {
     use super::*;

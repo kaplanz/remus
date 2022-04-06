@@ -50,8 +50,6 @@ impl<const N: usize> From<&[u8; N]> for Ram<N> {
     }
 }
 
-impl<const N: usize> Memory for Ram<N> {}
-
 #[cfg(test)]
 mod tests {
     use super::*;

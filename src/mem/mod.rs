@@ -15,7 +15,6 @@ use std::ops::Deref;
 
 pub use self::ram::Ram;
 pub use self::rom::Rom;
-use crate::dev::Device;
 
 mod ram;
 mod rom;
@@ -27,7 +26,9 @@ mod rom;
 ///
 /// Additionally, it enforces [`Deref`] and [`Device`], allowing any other types
 /// which do so to trivially implement [`Memory`].
-pub trait Memory: Deref<Target = [u8]> + Device {}
+pub trait Memory: Deref<Target = [u8]> {}
+
+impl<T: Deref<Target = [u8]>> Memory for T {}
 
 impl Display for dyn Memory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
