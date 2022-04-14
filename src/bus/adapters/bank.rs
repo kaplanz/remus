@@ -1,6 +1,5 @@
-use super::DynDevice;
 use crate::blk::Block;
-use crate::dev::Device;
+use crate::dev::{Device, SharedDevice};
 
 /// Bank device adapter.
 ///
@@ -13,7 +12,7 @@ use crate::dev::Device;
 #[derive(Debug, Default)]
 pub struct Bank {
     pub active: usize,
-    pub banks: Vec<DynDevice>,
+    pub banks: Vec<SharedDevice>,
 }
 
 impl Bank {
@@ -24,7 +23,10 @@ impl Bank {
 
 impl Block for Bank {
     fn reset(&mut self) {
-        std::mem::take(self);
+        self.active = 0;
+        for bank in &self.banks {
+            bank.borrow_mut().reset();
+        }
     }
 }
 
@@ -49,6 +51,15 @@ impl Device for Bank {
     }
 }
 
+impl From<Vec<SharedDevice>> for Bank {
+    fn from(banks: Vec<SharedDevice>) -> Self {
+        Self {
+            banks,
+            ..Default::default()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
@@ -60,9 +71,9 @@ mod tests {
 
     fn setup() -> Bank {
         let mut bank = Bank::new();
-        let ram: DynDevice = Rc::new(RefCell::new(Ram::<0x100>::from(&[0x55; 0x100])));
-        let null: DynDevice = Rc::new(RefCell::new(Null::<0>::new()));
-        let random: DynDevice = Rc::new(RefCell::new(Random::<0x100>::new()));
+        let ram: SharedDevice = Rc::new(RefCell::new(Ram::<0x100>::from(&[0x55; 0x100])));
+        let null: SharedDevice = Rc::new(RefCell::new(Null::<0>::new()));
+        let random: SharedDevice = Rc::new(RefCell::new(Random::<0x100>::new()));
         bank.banks.extend([ram, null, random]);
         bank
     }

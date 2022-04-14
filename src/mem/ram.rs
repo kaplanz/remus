@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::ops::{Deref, DerefMut};
 
+use crate::blk::Block;
 use crate::mem::Memory;
 
 /// Random-access memory model.
@@ -12,6 +13,14 @@ impl<const N: usize> Ram<N> {
         Default::default()
     }
 }
+
+impl<const N: usize> Block for Ram<N> {
+    fn reset(&mut self) {
+        std::mem::take(self);
+    }
+}
+
+impl<const N: usize> Memory for Ram<N> {}
 
 impl<const N: usize> Default for Ram<N> {
     fn default() -> Self {

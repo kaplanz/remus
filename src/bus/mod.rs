@@ -11,22 +11,19 @@
 //!
 //! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
 
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::rc::Rc;
 
 use crate::blk::Block;
-use crate::dev::Device;
+use crate::dev::{Device, SharedDevice};
 
 pub mod adapters;
-
-type DynDevice = Rc<RefCell<dyn Device>>;
 
 /// Memory interface bus.
 #[derive(Debug, Default)]
 pub struct Bus {
-    maps: BTreeMap<usize, Vec<DynDevice>>,
+    maps: BTreeMap<usize, Vec<SharedDevice>>,
 }
 
 impl Bus {
@@ -34,17 +31,27 @@ impl Bus {
         Self::default()
     }
 
-    pub fn map(&mut self, base: usize, dev: DynDevice) {
+    /// Clear all mapped devices.
+    pub fn clear(&mut self) {
+        self.maps.clear();
+    }
+
+    /// Map a [`Device`] at the provided address.
+    pub fn map(&mut self, base: usize, dev: SharedDevice) {
         self.maps.entry(base).or_default().push(dev);
     }
 
-    pub fn unmap(&mut self, base: usize, dev: DynDevice) -> Option<DynDevice> {
+    /// Unmap a [`Device`] at the provided address.
+    ///
+    /// Returns `None` if the device was not mapped at the address. Otherwise,
+    /// returns the unmapped device.
+    pub fn unmap(&mut self, base: usize, dev: SharedDevice) -> Option<SharedDevice> {
         let devs = self.maps.get_mut(&base)?;
         let index = devs.iter().position(|this| Rc::ptr_eq(this, &dev))?;
         Some(devs.remove(index))
     }
 
-    fn at(&self, index: usize) -> Option<(&usize, &DynDevice)> {
+    fn at(&self, index: usize) -> Option<(&usize, &SharedDevice)> {
         self.maps
             .range(..=index)
             .rev()
@@ -52,7 +59,7 @@ impl Bus {
             .find(|(&base, dev)| dev.borrow().contains(index - base))
     }
 
-    fn at_mut(&mut self, index: usize) -> Option<(&usize, &mut DynDevice)> {
+    fn at_mut(&mut self, index: usize) -> Option<(&usize, &mut SharedDevice)> {
         self.maps
             .range_mut(..=index)
             .rev()
@@ -63,7 +70,9 @@ impl Bus {
 
 impl Block for Bus {
     fn reset(&mut self) {
-        std::mem::take(self);
+        for dev in self.maps.iter().flat_map(|(_, devs)| devs) {
+            dev.borrow_mut().reset();
+        }
     }
 }
 
@@ -98,23 +107,32 @@ impl Device for Bus {
     }
 }
 
-impl<const N: usize> From<[(usize, Vec<DynDevice>); N]> for Bus {
-    fn from(arr: [(usize, Vec<DynDevice>); N]) -> Self {
-        Self { maps: arr.into() }
+impl<const N: usize> From<[(usize, SharedDevice); N]> for Bus {
+    fn from(arr: [(usize, SharedDevice); N]) -> Self {
+        let mut this = Self::default();
+        for (addr, dev) in arr {
+            this.map(addr, dev);
+        }
+        this
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use super::*;
     use crate::mem::Ram;
 
     fn setup() -> Bus {
         Bus::from([
-            (0x000, vec![Rc::new(RefCell::new(vec![1; 0x100]))]),
-            (0x100, vec![Rc::new(RefCell::new(vec![2; 0x100]))]),
-            (0x200, vec![Rc::new(RefCell::new(vec![3; 0x100]))]),
-        ] as [(usize, Vec<DynDevice>); 3])
+            (
+                0x000,
+                Rc::new(RefCell::new(Ram::<0x100>::new())) as SharedDevice,
+            ),
+            (0x100, Rc::new(RefCell::new(Ram::from(&[1; 0x100])))),
+            (0x200, Rc::new(RefCell::new(Ram::from(&[2; 0x100])))),
+        ])
     }
 
     #[test]
@@ -126,17 +144,27 @@ mod tests {
     #[test]
     fn from_works() {
         let _ = Bus::from([
-            (0x000, vec![Rc::new(RefCell::new(Box::from([0; 0x100])))]),
-            (0x100, vec![Rc::new(RefCell::new(vec![0; 0x100]))]),
-            (0x200, vec![Rc::new(RefCell::new(Ram::<0x100>::new()))]),
-        ] as [(usize, Vec<DynDevice>); 3]);
+            (
+                0x000,
+                Rc::new(RefCell::new(Ram::<0x100>::new())) as SharedDevice,
+            ),
+            (0x100, Rc::new(RefCell::new(Ram::from(&[1; 0x100])))),
+            (0x200, Rc::new(RefCell::new(Ram::from(&[2; 0x100])))),
+        ]);
+    }
+
+    #[test]
+    fn clear_works() {
+        let mut bus = setup();
+        bus.clear();
+        assert_eq!(bus.maps.len(), 0);
     }
 
     #[test]
     fn map_works() {
         let mut bus = Bus::new();
-        bus.map(0x000, Rc::new(RefCell::new(Box::from([0; 0x100]))));
-        bus.map(0x100, Rc::new(RefCell::new(vec![0; 0x100])));
+        bus.map(0x000, Rc::new(RefCell::new(Ram::from(&[0; 0x100]))));
+        bus.map(0x100, Rc::new(RefCell::new(Ram::from(&[1; 0x100]))));
         bus.map(0x200, Rc::new(RefCell::new(Ram::<0x100>::new())));
     }
 
@@ -144,12 +172,19 @@ mod tests {
     #[should_panic]
     fn unmap_works() {
         let mut bus = Bus::new();
-        let d0 = Rc::new(RefCell::new(Box::from([0; 0x100])));
+        let d0 = Rc::new(RefCell::new(Ram::from(&[0; 0x100])));
         bus.map(0x000, d0.clone());
-        bus.map(0x100, Rc::new(RefCell::new(vec![0; 0x100])));
+        bus.map(0x100, Rc::new(RefCell::new(Ram::from(&[0xaa; 0x100]))));
         bus.map(0x200, Rc::new(RefCell::new(Ram::<0x100>::new())));
         bus.unmap(0x000, d0);
         bus.read(0x000);
+    }
+
+    #[test]
+    fn block_reset_works() {
+        let mut bus = setup();
+        bus.reset();
+        assert_eq!(bus.maps.len(), setup().maps.len());
     }
 
     #[test]
@@ -312,9 +347,9 @@ mod tests {
     #[test]
     fn device_read_mapped_works() {
         let bus = setup();
-        (0x000..0x100).for_each(|i| assert_eq!(bus.read(i), 1));
-        (0x100..0x200).for_each(|i| assert_eq!(bus.read(i), 2));
-        (0x200..0x300).for_each(|i| assert_eq!(bus.read(i), 3));
+        (0x000..0x100).for_each(|i| assert_eq!(bus.read(i), 0));
+        (0x100..0x200).for_each(|i| assert_eq!(bus.read(i), 1));
+        (0x200..0x300).for_each(|i| assert_eq!(bus.read(i), 2));
     }
 
     #[test]

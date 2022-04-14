@@ -16,6 +16,7 @@
 //! [byte-addressable]: https://en.wikipedia.org/wiki/Byte_addressing
 
 use std::default::Default;
+use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 use num::Unsigned;
@@ -27,13 +28,19 @@ use crate::dev::Device;
 #[derive(Debug, Default)]
 pub struct Register<U: Unsigned>(U);
 
-impl<U: Default + Unsigned> Register<U> {
+impl<U> Register<U>
+where
+    U: Default + Unsigned,
+{
     pub fn new() -> Self {
         Default::default()
     }
 }
 
-impl<U: Default + Unsigned> Block for Register<U> {
+impl<U> Block for Register<U>
+where
+    U: Debug + Default + Unsigned,
+{
     fn reset(&mut self) {
         std::mem::take(self);
     }

@@ -10,8 +10,11 @@
 //! <https://github.com/zakharykaplan/gameboy>.
 
 pub use blk::Block;
-pub use dev::Device;
+#[doc(inline)]
+pub use dev::{Device, SharedDevice};
 pub use fsm::Machine;
+#[doc(inline)]
+pub use mem::Memory;
 
 mod blk;
 pub mod bus;

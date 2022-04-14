@@ -1,6 +1,5 @@
-use super::DynDevice;
 use crate::blk::Block;
-use crate::dev::Device;
+use crate::dev::{Device, SharedDevice};
 
 /// Remap device adapter.
 ///
@@ -14,16 +13,20 @@ use crate::dev::Device;
 #[derive(Debug)]
 pub struct Remap {
     offset: isize,
-    dev: DynDevice,
+    dev: SharedDevice,
 }
 
 impl Remap {
-    pub fn new(offset: isize, dev: DynDevice) -> Self {
+    pub fn new(offset: isize, dev: SharedDevice) -> Self {
         Self { offset, dev }
     }
 }
 
-impl Block for Remap {}
+impl Block for Remap {
+    fn reset(&mut self) {
+        self.dev.borrow_mut().reset();
+    }
+}
 
 impl Device for Remap {
     fn contains(&self, index: usize) -> bool {

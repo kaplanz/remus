@@ -14,7 +14,6 @@
 pub use self::bank::Bank;
 pub use self::remap::Remap;
 pub use self::view::View;
-use super::DynDevice;
 
 mod bank;
 mod remap;

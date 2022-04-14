@@ -7,7 +7,7 @@ use crate::mem::Memory;
 
 /// Read-only memory model.
 ///
-/// Panics on [`write`](Rom::write).
+/// Panics on [`Device::write`].
 #[derive(Debug)]
 pub struct Rom<const N: usize>(Box<[u8; N]>);
 
@@ -17,11 +17,9 @@ impl<const N: usize> Rom<N> {
     }
 }
 
-impl<const N: usize> Block for Rom<N> {
-    fn reset(&mut self) {
-        std::mem::take(self);
-    }
-}
+impl<const N: usize> Block for Rom<N> {}
+
+impl<const N: usize> Memory for Rom<N> {}
 
 impl<const N: usize> Default for Rom<N> {
     fn default() -> Self {

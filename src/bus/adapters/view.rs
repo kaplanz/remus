@@ -1,9 +1,8 @@
 use std::fmt::Debug;
 use std::ops::{Bound, RangeBounds};
 
-use super::DynDevice;
 use crate::blk::Block;
-use crate::dev::Device;
+use crate::dev::{Device, SharedDevice};
 
 /// View device adapter.
 ///
@@ -15,13 +14,19 @@ use crate::dev::Device;
 /// In conjunction with [`Remap`](super::Remap), devices can be partially or
 /// completely mapped into another address space as desired.
 #[derive(Debug)]
-pub struct View<R: Debug + RangeBounds<usize>> {
-    dev: DynDevice,
+pub struct View<R>
+where
+    R: Debug + RangeBounds<usize>,
+{
+    dev: SharedDevice,
     range: R,
 }
 
-impl<R: Debug + RangeBounds<usize>> View<R> {
-    pub fn new(dev: DynDevice, range: R) -> Self {
+impl<R> View<R>
+where
+    R: Debug + RangeBounds<usize>,
+{
+    pub fn new(dev: SharedDevice, range: R) -> Self {
         Self { dev, range }
     }
 
@@ -35,9 +40,19 @@ impl<R: Debug + RangeBounds<usize>> View<R> {
     }
 }
 
-impl<R: Debug + RangeBounds<usize>> Block for View<R> {}
+impl<R> Block for View<R>
+where
+    R: Debug + RangeBounds<usize>,
+{
+    fn reset(&mut self) {
+        self.dev.borrow_mut().reset();
+    }
+}
 
-impl<R: Debug + RangeBounds<usize>> Device for View<R> {
+impl<R> Device for View<R>
+where
+    R: Debug + RangeBounds<usize>,
+{
     fn contains(&self, index: usize) -> bool {
         let index = self.translate(index);
         self.range.contains(&index)

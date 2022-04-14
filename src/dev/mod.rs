@@ -7,18 +7,22 @@
 //!
 //! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
 
-use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
+use std::cell::RefCell;
+use std::ops::DerefMut;
+use std::rc::Rc;
 
 pub use self::null::Null;
 pub use self::random::Random;
 use crate::blk::Block;
+use crate::mem::Memory;
 
 mod null;
 mod random;
 
+pub type SharedDevice = Rc<RefCell<dyn Device>>;
+
 /// Memory-mapped I/O device.
-pub trait Device: Block + Debug {
+pub trait Device: Block {
     /// Check if the [`Device`] contains the provided index within its address
     /// space for performing [`read`](Device::read)s and
     /// [`write`](Device::write)s.
@@ -37,11 +41,19 @@ pub trait Device: Block + Debug {
 
     /// Perform a write to the byte at the specified address.
     fn write(&mut self, index: usize, value: u8);
+
+    /// Create a shared [`Device`] from self.
+    fn to_shared(self) -> SharedDevice
+    where
+        Self: 'static + Sized,
+    {
+        Rc::new(RefCell::new(self))
+    }
 }
 
 impl<T> Device for T
 where
-    T: Block + Debug + Deref<Target = [u8]> + DerefMut,
+    T: Block + DerefMut + Memory,
 {
     fn contains(&self, index: usize) -> bool {
         (0..self.len()).contains(&index)
@@ -63,21 +75,22 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mem::Ram;
 
     #[test]
     fn device_contains_works() {
-        (0..0x100).for_each(|index| assert!(Device::contains(&vec![0xaau8; 0x100], index)));
+        (0..0x100).for_each(|index| assert!(Device::contains(&Ram::from(&[0xaau8; 0x100]), index)));
     }
 
     #[test]
     fn device_read_works() {
-        (0..0x100).for_each(|index| assert_eq!(vec![0xaau8; 0x100].read(index), 0xaa));
+        (0..0x100).for_each(|index| assert_eq!(Ram::from(&[0xaau8; 0x100]).read(index), 0xaa));
     }
 
     #[test]
     fn device_write_works() {
-        let mut dev = vec![0u8; 0x100];
+        let mut dev = Ram::from(&[0u8; 0x100]);
         (0..0x100).for_each(|index| dev.write(index, 0xaa));
-        (0..0x100).for_each(|index| assert_eq!(vec![0xaau8; 0x100].read(index), 0xaa));
+        (0..0x100).for_each(|index| assert_eq!(Ram::from(&[0xaau8; 0x100]).read(index), 0xaa));
     }
 }
