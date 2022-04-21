@@ -6,13 +6,14 @@
 //! over the unsigned integer types, representing registers holding values of
 //! types [`u8`], [`u16`], [`u32`], [`u64`], and [`u128`] respectively.
 //!
-//! To provide access as the represented type, [`Register`] implements [`Deref`]
-//! and [`DerefMut`] (it behaves as a newtype).
+//! To provide access as the represented type, `Register` implements [`Deref`]
+//! and [`DerefMut`] ([newtype pattern]).
 //!
-//! Since [`Register`] implements [`Device`], it may be mapped to another
-//! address space using a [`Bus`](crate::bus::Bus), and is [byte-addressable]
-//! using [`Device::read()`] and [`Device::write()`].
+//! Since `Register` implements [`Device`], it may be mapped to another address
+//! space using a [`Bus`](crate::bus::Bus), and is [byte-addressable] through
+//! [`Device::read`] and [`Device::write`].
 //!
+//! [newtype pattern]:  https://doc.rust-lang.org/rust-by-example/generics/new_types.html
 //! [byte-addressable]: https://en.wikipedia.org/wiki/Byte_addressing
 
 use std::default::Default;
@@ -32,6 +33,7 @@ impl<U> Register<U>
 where
     U: Default + Unsigned,
 {
+    /// Constructs a new `Register<U>`.
     pub fn new() -> Self {
         Default::default()
     }

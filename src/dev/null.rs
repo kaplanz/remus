@@ -5,17 +5,18 @@ use crate::blk::Block;
 ///
 /// # Usage
 ///
-/// The [`Null`] device ignores all writes, and always yields the same "garbage"
+/// The `Null` device ignores all writes, and always yields the same "garbage"
 /// values when read. This can be useful to allow memory accesses to an unmapped
 /// region of memory without causing a panic.
 ///
-/// [`Null`] defaults to yielding the null byte (`0x00`) when read, but this can
-/// be changed either by initializing using [`Null::with()`], or through the
-/// [`Null::read_as()`] method at runtime.
+/// `Null` defaults to yielding the null byte (`0x00`) when read, but this can
+/// be changed either by constructing with [`Null::with`], or through the
+/// [`Null::read_as`] method at runtime.
 #[derive(Debug, Default)]
 pub struct Null<const N: usize>(u8);
 
 impl<const N: usize> Null<N> {
+    /// Constructs a new `Null<N>`.
     pub fn new() -> Self {
         Self::default()
     }

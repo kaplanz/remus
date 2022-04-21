@@ -23,26 +23,25 @@ pub type SharedDevice = Rc<RefCell<dyn Device>>;
 
 /// Memory-mapped I/O device.
 pub trait Device: Block {
-    /// Check if the [`Device`] contains the provided index within its address
-    /// space for performing [`read`](Device::read)s and
-    /// [`write`](Device::write)s.
+    /// Checks if the device contains the provided `index` within its
+    /// address space.
     fn contains(&self, index: usize) -> bool;
 
-    /// Returns the length of the [`Device`], in bytes.
+    /// Returns the length of the device, in bytes.
     fn len(&self) -> usize;
 
-    /// Check if the length of the [`Device`] is zero.
+    /// Checks if the length of the device is zero.
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Perform a read of the byte at the specified address.
+    /// Reads a byte from the specified address.
     fn read(&self, index: usize) -> u8;
 
-    /// Perform a write to the byte at the specified address.
+    /// Writes a byte to the specified address.
     fn write(&mut self, index: usize, value: u8);
 
-    /// Create a shared [`Device`] from self.
+    /// Constructs a `SharedDevice` from `self`.
     fn to_shared(self) -> SharedDevice
     where
         Self: 'static + Sized,

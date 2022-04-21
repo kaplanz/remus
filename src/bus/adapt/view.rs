@@ -4,12 +4,12 @@ use std::ops::{Bound, RangeBounds};
 use crate::blk::Block;
 use crate::dev::{Device, SharedDevice};
 
-/// View device adapter.
+/// Partial address view.
 ///
 /// # Usage
 ///
-/// The [`View`] device adapter allows access to a slice of the underlying
-/// device, while remapping the starting address to zero.
+/// The `View` device adapter allows access to a slice of the underlying
+/// [`Device`], while remapping the starting address to zero.
 ///
 /// In conjunction with [`Remap`](super::Remap), devices can be partially or
 /// completely mapped into another address space as desired.
@@ -26,6 +26,7 @@ impl<R> View<R>
 where
     R: Debug + RangeBounds<usize>,
 {
+    /// Constructs a new `View`.
     pub fn new(dev: SharedDevice, range: R) -> Self {
         Self { dev, range }
     }
@@ -93,28 +94,25 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
     use super::*;
     use crate::mem::Ram;
 
     #[test]
     fn new_works() {
-        let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
+        let ram = Ram::<0x100>::new().to_shared();
         let _ = View::new(ram, 0x40..0xc0);
     }
 
     #[test]
     fn device_contains_works() {
         // Exclusive bound
-        let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
+        let ram = Ram::<0x100>::new().to_shared();
         let view = View::new(ram, 0x40..0xc0);
         (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
         (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
 
         // Inclusive bound
-        let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
+        let ram = Ram::<0x100>::new().to_shared();
         let view = View::new(ram, 0x40..=0xbf);
         (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
         (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
@@ -122,7 +120,7 @@ mod tests {
 
     #[test]
     fn device_len_works() {
-        let ram = Rc::new(RefCell::new(Ram::<0x10000>::new()));
+        let ram = Ram::<0x10000>::new().to_shared();
         assert_eq!(View::new(ram.clone(), 0..0x0).len(), 0x0);
         assert_eq!(View::new(ram.clone(), 0..=0x0).len(), 0x1);
         assert_eq!(View::new(ram.clone(), 0..0x10).len(), 0x10);
@@ -133,7 +131,7 @@ mod tests {
 
     #[test]
     fn device_read_works() {
-        let ram = Rc::new(RefCell::new(Ram::<0x100>::from(&[0xaa; 0x100])));
+        let ram = Ram::<0x100>::from(&[0xaa; 0x100]).to_shared();
         let view = View::new(ram, 0x40..0xc0);
         (0..0x80).for_each(|addr| {
             assert_eq!(view.read(addr), 0xaa);
@@ -142,7 +140,7 @@ mod tests {
 
     #[test]
     fn device_write_works() {
-        let ram = Rc::new(RefCell::new(Ram::<0x100>::new()));
+        let ram = Ram::<0x100>::new().to_shared();
         let mut view = View::new(ram.clone(), 0x40..0xc0);
         (0x000..0x080).for_each(|addr| {
             view.write(addr, 0xaa);

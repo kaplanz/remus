@@ -1,41 +1,41 @@
-//! Clock signal generator.
-
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 
-/// Create a [`Clock`] that "ticks" at the provided frequency.
-pub fn with_freq(freq: u32) -> Clock {
-    let dur = Duration::from_secs_f64((freq as f64).recip());
-    with_period(dur)
-}
-
-/// Create a [`Clock`] whose "ticks" last the provided duration.
-pub fn with_period(dur: Duration) -> Clock {
-    let (tx, rx) = mpsc::channel();
-
-    thread::spawn(move || {
-        Clock::run(dur, tx);
-    });
-
-    Clock(rx)
-}
-
-/// [`Clock`] is an [`Iterator`] yielded by the free functions [`with_freq()`]
-/// and [`with_period()`].
+/// Clock signal generator.
 ///
-/// It handles the internal logic of keeping track of the "ticks" of the clock
-/// signal.
+/// An [`Iterator`] that ensures values are yielded on average[^1] according to
+/// the [elapsed real time]. `Clock` internally handles the ilogic of keeping
+/// track of the "ticks" (rising edges) of the clock signal.
 ///
-/// NOTE: As [`Clock`] internally uses the host machine's
-///       [`sleep`](thread::sleep) functionality, the host OS may elect to sleep
-///       for longer than the specified duration. To combad this, upon waking
-///       from sleep, the [`Clock`] will check how long it has been sleeping,
-///       and "tick" accordingly to how many cycles have been missed.
+/// [^1]: As `Clock` internally uses the host machine's [`sleep`](thread::sleep)
+///       functionality, the host OS may elect to sleep for longer than the
+///       specified duration. To combat this, upon waking from sleep the `Clock`
+///       will check how long it has been sleeping, and tick accordingly to make
+///       up missed cycles.
+///
+/// [elapsed real time]: https://en.wikipedia.org/wiki/Elapsed_real_time
 #[derive(Debug)]
 pub struct Clock(Receiver<()>);
 
 impl Clock {
+    /// Constructs a `Clock` that ticks at the provided frequency.
+    pub fn with_freq(freq: u32) -> Self {
+        let dur = Duration::from_secs_f64((freq as f64).recip());
+        Self::with_period(dur)
+    }
+
+    /// Constructs a `Clock` whose ticks last the provided duration.
+    pub fn with_period(dur: Duration) -> Self {
+        let (tx, rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            Self::run(dur, tx);
+        });
+
+        Clock(rx)
+    }
+
     fn run(dur: Duration, tx: Sender<()>) {
         // Keep track of how many cycles we missed while sleeping
         let mut missed = 0;
@@ -44,9 +44,9 @@ impl Clock {
         // (usually caused by the receiver hanging up).
         while (0..missed).all(|_| tx.send(()).is_ok()) {
             // Check the time before going to sleep
-            // NOTE: Due to OS scheduling the call to `thread::sleep()` may last
-            //       longer than the specified duration. Because of this, we
-            //       must record how many cycles were missed.
+            // NOTE: Due to OS scheduling, the call to `thread::sleep()` may
+            //       last longer than the specified duration. Because of this,
+            //       we must record how many cycles were missed.
             let now = Instant::now();
             // Sleep for the specified duration
             thread::sleep(dur);

@@ -3,8 +3,8 @@
 //! # Usage
 //!
 //! The [`Ram`] and [`Rom`] memory models work similarly to one another, with
-//! the obvious exception that [`Rom`] ignores all writes. As both implement
-//! [`Deref`] into a [`[u8]`], all expected [`std::slice`] functions are
+//! the obvious exception that `Rom` panics on writes. As both implement
+//! [`Deref`] into a `[u8]`, all expected [`std::slice`] functions are
 //! available.
 //!
 //! Additionally, both models implement [`Device`](crate::dev::Device), allowing
@@ -22,11 +22,10 @@ mod rom;
 
 /// Generic memory model.
 ///
-/// [`Memory`] implements [`Display`] in such a way that may be convenient for
-/// implementers.
-///
-/// Additionally, it enforces [`Deref`] and [`Device`](crate::dev::Device), allowing any other types
-/// which do so to trivially implement [`Memory`].
+/// `Memory` implements [`Display`] to allow convenient formatting of contents
+/// for implementers. Additionally, it enforces [`Deref`] and
+/// [`Device`](crate::dev::Device), allowing any other types which do so to
+/// trivially implement [`Memory`].
 pub trait Memory: Block + Deref<Target = [u8]> {}
 
 impl Block for &[u8] {}
@@ -94,7 +93,7 @@ mod tests {
             arr[N - i - 1] = i as u8;
         });
 
-        let mem = &arr.as_slice() as &dyn Memory;
+        let mem = &&arr[..] as &dyn Memory;
         assert_eq!(
             format!("{mem}"),
             [

@@ -9,16 +9,17 @@
 //! For an example of how to use Remus, consult
 //! <https://github.com/zakharykaplan/gameboy>.
 
-pub use blk::Block;
+pub use self::blk::Block;
+pub use self::clk::Clock;
 #[doc(inline)]
-pub use dev::{Device, SharedDevice};
-pub use fsm::Machine;
+pub use self::dev::{Device, SharedDevice};
+pub use self::fsm::Machine;
 #[doc(inline)]
-pub use mem::Memory;
+pub use self::mem::Memory;
 
 mod blk;
 pub mod bus;
-pub mod clk;
+mod clk;
 pub mod dev;
 mod fsm;
 pub mod mem;

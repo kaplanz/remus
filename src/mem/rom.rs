@@ -12,6 +12,7 @@ use crate::mem::Memory;
 pub struct Rom<const N: usize>(Box<[u8; N]>);
 
 impl<const N: usize> Rom<N> {
+    /// Constructs a new, empty `Rom<N>`.
     pub fn new() -> Self {
         Default::default()
     }

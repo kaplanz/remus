@@ -2,13 +2,14 @@ use std::fmt::Debug;
 
 /// Integrated circuit block.
 pub trait Block: Debug {
-    /// Perform a reset on this [`Block`].
+    /// Performs a reset on this `Block`.
     ///
-    /// Afterwards, the block should behave as if it has been re-initialized.
+    /// Afterwards, the block should behave as if it has been
+    /// re-initialized[^1].
     ///
-    /// NOTE: Models should be aware that sometimes persistent data is left
+    /// [^1]: Models should be aware that sometimes persistent data is left
     ///       behind intentionally by the trait implementer. Within the context
-    ///       of the emulator, accessing data after a reset may be considered
-    ///       undefined behaviour.
+    ///       of the emulator, accessing persistent data after a reset may be
+    ///       considered undefined behaviour.
     fn reset(&mut self) {}
 }

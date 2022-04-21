@@ -5,15 +5,14 @@ use crate::blk::Block;
 ///
 /// # Usage
 ///
-/// The [`Random`] device ignores all writes, and always yields random "garbage"
+/// The `Random` device ignores all writes, and always yields random "garbage"
 /// values when read. This can be useful to allow memory accesses to an unmapped
 /// region of memory without causing a panic.
-///
-/// As its name suggests, [`Random`] yields a random value when read.
 #[derive(Debug, Default)]
 pub struct Random<const N: usize>();
 
 impl<const N: usize> Random<N> {
+    /// Constructs a new `Random`.
     pub fn new() -> Self {
         Self::default()
     }

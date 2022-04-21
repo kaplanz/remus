@@ -2,10 +2,9 @@ use crate::blk::Block;
 
 /// Finite-state machine.
 pub trait Machine: Block {
-    /// Check if the [`Machine`] is in a runnable state.
+    /// Checks if the [`Machine`] is in a runnable state.
     fn enabled(&self) -> bool;
 
-    /// Perform a single cycle of the [`Machine`]'s execution, potentially
-    /// changing its state.
+    /// Executes a single cycle on the [`Machine`], likely mutating its state.
     fn cycle(&mut self);
 }
