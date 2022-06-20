@@ -1,7 +1,6 @@
 [package]
 name = "remus"
 version = "0.1.0"
-authors = ["Zakhary Kaplan <zakharykaplan@gmail.com>"]
 edition = "2021"
 description = "Modular emulator creation toolkit"
 repository = "https://github.com/zakharykaplan/remus"
