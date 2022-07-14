@@ -11,13 +11,14 @@ use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::rc::Rc;
 
-pub use self::null::Null;
-pub use self::random::Random;
 use crate::blk::Block;
 use crate::mem::Memory;
 
 mod null;
 mod random;
+
+pub use self::null::Null;
+pub use self::random::Random;
 
 pub type SharedDevice = Rc<RefCell<dyn Device>>;
 

@@ -13,12 +13,13 @@
 use std::fmt::Display;
 use std::ops::Deref;
 
-pub use self::ram::Ram;
-pub use self::rom::Rom;
 use crate::blk::Block;
 
 mod ram;
 mod rom;
+
+pub use self::ram::Ram;
+pub use self::rom::Rom;
 
 /// Generic memory model.
 ///
