@@ -7,7 +7,7 @@
 //! # Examples
 //!
 //! For an example of how to use Remus, consult
-//! <https://github.com/zakharykaplan/gameboy>.
+//! <https://github.com/kaplanz/gameboy>.
 
 mod blk;
 mod clk;
