@@ -66,14 +66,17 @@ impl Block for Bank {
 
 impl Device for Bank {
     fn contains(&self, index: usize) -> bool {
-        match self.banks.get(self.sel) {
-            Some(bank) => bank.borrow().contains(index),
-            None => false,
-        }
+        self.banks
+            .get(self.sel)
+            .map(|bank| bank.borrow().contains(index))
+            .unwrap_or_default()
     }
 
     fn len(&self) -> usize {
-        self.banks[self.sel].borrow().len()
+        self.banks
+            .get(self.sel)
+            .map(|bank| bank.borrow().len())
+            .unwrap_or_default()
     }
 
     fn read(&self, index: usize) -> u8 {
