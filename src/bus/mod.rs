@@ -41,7 +41,9 @@ impl Bus {
 
     /// Maps a device at the provided `base` address in the bus.
     pub fn map(&mut self, base: usize, dev: SharedDevice) {
-        self.maps.entry(base).or_default().push(dev);
+        let devs = self.maps.entry(base).or_default();
+        devs.push(dev);
+        devs.sort_by_key(|dev| dev.borrow().len());
     }
 
     /// Unmaps and returns the matching device at position `index` within the
