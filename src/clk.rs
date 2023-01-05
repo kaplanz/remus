@@ -20,23 +20,25 @@ pub struct Clock(Receiver<()>);
 
 impl Clock {
     /// Constructs a `Clock` that ticks at the provided frequency.
+    #[must_use]
     pub fn with_freq(freq: u32) -> Self {
-        let dur = Duration::from_secs_f64((freq as f64).recip());
+        let dur = Duration::from_secs_f64(f64::from(freq).recip());
         Self::with_period(dur)
     }
 
     /// Constructs a `Clock` whose ticks last the provided duration.
+    #[must_use]
     pub fn with_period(dur: Duration) -> Self {
         let (tx, rx) = mpsc::channel();
 
         thread::spawn(move || {
-            Self::run(dur, tx);
+            Self::run(dur, &tx);
         });
 
         Clock(rx)
     }
 
-    fn run(dur: Duration, tx: Sender<()>) {
+    fn run(dur: Duration, tx: &Sender<()>) {
         // Keep track of how many cycles we missed while sleeping
         let mut missed = 0;
 

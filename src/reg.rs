@@ -34,8 +34,9 @@ where
     U: Default + Unsigned,
 {
     /// Constructs a new `Register<U>`.
+    #[must_use]
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 }
 

@@ -10,8 +10,9 @@ pub struct Ram<const N: usize>(Box<[u8; N]>);
 
 impl<const N: usize> Ram<N> {
     /// Constructs a new, empty `Ram<N>`.
+    #[must_use]
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 }
 

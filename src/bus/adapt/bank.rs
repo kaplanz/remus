@@ -17,6 +17,7 @@ pub struct Bank {
 
 impl Bank {
     /// Constructs a new, empty `Bank`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -34,18 +35,18 @@ impl Bank {
 
     /// Appends a device to the back of a bank.
     pub fn add(&mut self, dev: SharedDevice) {
-        self.banks.push(dev)
+        self.banks.push(dev);
     }
 
     /// Clears the bank, removing all devices.
     pub fn clear(&mut self) {
-        self.banks.clear()
+        self.banks.clear();
     }
 
     /// Inserts an device at position `index` within the bank, shifting all
     /// devices after it to the right.
     pub fn insert(&mut self, index: usize, dev: SharedDevice) {
-        self.banks.insert(index, dev)
+        self.banks.insert(index, dev);
     }
 
     /// Removes and returns the device at position `index` within the bank,

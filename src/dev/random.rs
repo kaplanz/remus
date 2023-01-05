@@ -13,6 +13,7 @@ pub struct Random<const N: usize>();
 
 impl<const N: usize> Random<N> {
     /// Constructs a new `Random`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

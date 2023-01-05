@@ -13,8 +13,9 @@ pub struct Rom<const N: usize>(Box<[u8; N]>);
 
 impl<const N: usize> Rom<N> {
     /// Constructs a new, empty `Rom<N>`.
+    #[must_use]
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 }
 

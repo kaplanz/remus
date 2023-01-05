@@ -17,12 +17,14 @@ pub struct Null<const N: usize>(u8);
 
 impl<const N: usize> Null<N> {
     /// Constructs a new `Null<N>`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Construct an instance of [`Null`] that yields the specified byte when
     /// performing a read.
+    #[must_use]
     pub fn with(read_as: u8) -> Self {
         Self(read_as)
     }

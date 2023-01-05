@@ -50,9 +50,8 @@ impl Display for &dyn Memory {
             if skip {
                 if zero {
                     continue;
-                } else {
-                    skip = false;
                 }
+                skip = false;
             }
             // Insert a newline after the previous row
             if i != 0 {

@@ -18,6 +18,7 @@ pub struct Remap {
 
 impl Remap {
     /// Constructs a new `Remap`.
+    #[must_use]
     pub fn new(offset: isize, dev: SharedDevice) -> Self {
         Self { offset, dev }
     }

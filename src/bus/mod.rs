@@ -30,6 +30,7 @@ pub struct Bus {
 
 impl Bus {
     /// Constructs a new, empty `Bus`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
