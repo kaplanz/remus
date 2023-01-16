@@ -39,12 +39,10 @@ impl Clock {
     }
 
     fn run(dur: Duration, tx: &Sender<()>) {
-        // Keep track of how many cycles we missed while sleeping
-        let mut missed = 0;
+        // Keep track of fractional missed cycles
+        let mut rem = 0;
 
-        // Each iteration, clock in every missed cycle. Run until failure
-        // (usually caused by the receiver hanging up).
-        while (0..missed).all(|_| tx.send(()).is_ok()) {
+        loop {
             // Check the time before going to sleep
             // NOTE: Due to OS scheduling, the call to `thread::sleep()` may
             //       last longer than the specified duration. Because of this,
@@ -52,14 +50,21 @@ impl Clock {
             let now = Instant::now();
             // Sleep for the specified duration
             thread::sleep(dur);
-            // Clock in this cycle
-            missed = 1;
-            // Calculate how many cycles were missed since we went to sleep
-            missed += now
-                .elapsed()
-                .as_nanos()
-                .checked_div(dur.as_nanos())
-                .unwrap_or_default();
+            // Calculate how many cycles were slept through
+            let cycles = {
+                // Get elapsed (with remainder), duration in nanoseconds
+                let now = now.elapsed().as_nanos() + rem;
+                let dur = dur.as_nanos();
+                // Calculate elapsed cycle remainder
+                rem = now % dur;
+                // Calculate elapsed complete cycles
+                now / dur
+            };
+            // Clock in elapsed cycles. Run until failure (usually caused by the
+            // receiver hanging up).
+            if (0..cycles).any(|_| tx.send(()).is_err()) {
+                break;
+            }
         }
     }
 }
