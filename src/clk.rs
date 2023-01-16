@@ -52,8 +52,10 @@ impl Clock {
             let now = Instant::now();
             // Sleep for the specified duration
             thread::sleep(dur);
+            // Clock in this cycle
+            missed = 1;
             // Calculate how many cycles were missed since we went to sleep
-            missed = now
+            missed += now
                 .elapsed()
                 .as_nanos()
                 .checked_div(dur.as_nanos())
