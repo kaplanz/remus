@@ -7,6 +7,8 @@ use crate::mem::Memory;
 
 /// Read-only memory model.
 ///
+/// # Panics
+///
 /// Panics on [`Device::write`].
 #[derive(Debug)]
 pub struct Rom<const N: usize>(Box<[u8; N]>);
