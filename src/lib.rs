@@ -12,6 +12,7 @@
 mod blk;
 mod clk;
 mod fsm;
+mod pcb;
 
 pub mod bus;
 pub mod dev;
@@ -25,3 +26,4 @@ pub use self::dev::{Device, SharedDevice};
 pub use self::fsm::Machine;
 #[doc(inline)]
 pub use self::mem::Memory;
+pub use self::pcb::Board;
