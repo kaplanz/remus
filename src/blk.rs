@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 /// Integrated circuit block.
 pub trait Block: Debug {
-    /// Performs a reset on this `Block`.
+    /// Performs a reset on this [`Block`].
     ///
     /// Afterwards, the block should behave as if it has been
     /// re-initialized[^1].

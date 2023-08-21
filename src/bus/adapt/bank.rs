@@ -1,5 +1,6 @@
+use crate::arc::Address;
 use crate::blk::Block;
-use crate::dev::{Device, SharedDevice};
+use crate::dev::{Device, Dynamic};
 
 /// Device bank.
 ///
@@ -12,7 +13,7 @@ use crate::dev::{Device, SharedDevice};
 #[derive(Debug, Default)]
 pub struct Bank {
     sel: usize,
-    banks: Vec<SharedDevice>,
+    banks: Vec<Dynamic>,
 }
 
 impl Bank {
@@ -34,7 +35,7 @@ impl Bank {
     }
 
     /// Appends a device to the back of a bank.
-    pub fn add(&mut self, dev: SharedDevice) {
+    pub fn add(&mut self, dev: Dynamic) {
         self.banks.push(dev);
     }
 
@@ -45,22 +46,32 @@ impl Bank {
 
     /// Inserts an device at position `index` within the bank, shifting all
     /// devices after it to the right.
-    pub fn insert(&mut self, index: usize, dev: SharedDevice) {
+    pub fn insert(&mut self, index: usize, dev: Dynamic) {
         self.banks.insert(index, dev);
     }
 
     /// Removes and returns the device at position `index` within the bank,
     /// shifting all devices after it to the left.
-    pub fn remove(&mut self, index: usize) -> SharedDevice {
+    pub fn remove(&mut self, index: usize) -> Dynamic {
         self.banks.remove(index)
+    }
+}
+
+impl Address for Bank {
+    fn read(&self, index: usize) -> u8 {
+        self.banks[self.sel].read(index)
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        self.banks[self.sel].write(index, value);
     }
 }
 
 impl Block for Bank {
     fn reset(&mut self) {
         self.sel = 0;
-        for bank in &self.banks {
-            bank.borrow_mut().reset();
+        for bank in &mut self.banks {
+            bank.reset();
         }
     }
 }
@@ -69,28 +80,20 @@ impl Device for Bank {
     fn contains(&self, index: usize) -> bool {
         self.banks
             .get(self.sel)
-            .map(|bank| bank.borrow().contains(index))
+            .map(|bank| bank.contains(index))
             .unwrap_or_default()
     }
 
     fn len(&self) -> usize {
         self.banks
             .get(self.sel)
-            .map(|bank| bank.borrow().len())
+            .map(Device::len)
             .unwrap_or_default()
-    }
-
-    fn read(&self, index: usize) -> u8 {
-        self.banks[self.sel].borrow().read(index)
-    }
-
-    fn write(&mut self, index: usize, value: u8) {
-        self.banks[self.sel].borrow_mut().write(index, value);
     }
 }
 
-impl From<Vec<SharedDevice>> for Bank {
-    fn from(banks: Vec<SharedDevice>) -> Self {
+impl From<Vec<Dynamic>> for Bank {
+    fn from(banks: Vec<Dynamic>) -> Self {
         Self {
             banks,
             ..Default::default()
@@ -106,9 +109,9 @@ mod tests {
 
     fn setup() -> Bank {
         let mut bank = Bank::new();
-        let ram = Ram::<0x100>::from(&[0x55; 0x100]).to_shared();
-        let null = Null::<0>::new().to_shared();
-        let random = Random::<0x100>::new().to_shared();
+        let ram = Ram::<0x100>::from(&[0x55; 0x100]).to_dynamic();
+        let null = Null::<0>::new().to_dynamic();
+        let random = Random::<0x100>::new().to_dynamic();
         bank.banks.extend([ram, null, random]);
         bank
     }
@@ -116,6 +119,39 @@ mod tests {
     #[test]
     fn new_works() {
         let _ = Bank::new();
+    }
+
+    #[test]
+    fn address_read_works() {
+        let mut bank = setup();
+        // Test bank 0
+        bank.sel = 0;
+        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0x55));
+        // Test bank 2
+        bank.sel = 2;
+        (0x00..=0xff).for_each(|addr| {
+            let _ = bank.read(addr);
+        });
+    }
+
+    #[test]
+    fn address_write_works() {
+        let mut bank = setup();
+        // Test bank 0
+        bank.sel = 0;
+        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
+        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0xaa));
+        // Test bank 2
+        bank.sel = 2;
+        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
+        // NOTE: For all intents and purposes, this should never fail. If it
+        //       does, one of two things happened:
+        //       1. You broke something either in Bank or Random
+        //       2. You broke this test
+        //       3. You broke probability, all hope is lost
+        assert!((0x00..=0xff)
+            .map(|addr| bank.read(addr))
+            .any(|value| value != 0xaa));
     }
 
     #[test]
@@ -144,38 +180,5 @@ mod tests {
         // Test bank 0
         bank.sel = 2;
         assert_eq!(bank.len(), 0x100);
-    }
-
-    #[test]
-    fn device_read_works() {
-        let mut bank = setup();
-        // Test bank 0
-        bank.sel = 0;
-        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0x55));
-        // Test bank 2
-        bank.sel = 2;
-        (0x00..=0xff).for_each(|addr| {
-            let _ = bank.read(addr);
-        });
-    }
-
-    #[test]
-    fn device_write_works() {
-        let mut bank = setup();
-        // Test bank 0
-        bank.sel = 0;
-        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
-        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0xaa));
-        // Test bank 2
-        bank.sel = 2;
-        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
-        // NOTE: For all intents and purposes, this should never fail. If it
-        //       does, one of two things happened:
-        //       1. You broke something either in Bank or Random
-        //       2. You broke this test
-        //       3. You broke probability, all hope is lost
-        assert!((0x00..=0xff)
-            .map(|addr| bank.read(addr))
-            .any(|value| value != 0xaa));
     }
 }

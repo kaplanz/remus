@@ -1,4 +1,5 @@
 use super::Device;
+use crate::arc::Address;
 use crate::blk::Block;
 
 /// Null device.
@@ -35,6 +36,14 @@ impl<const N: usize> Null<N> {
     }
 }
 
+impl<const N: usize> Address for Null<N> {
+    fn read(&self, _index: usize) -> u8 {
+        self.0
+    }
+
+    fn write(&mut self, _index: usize, _value: u8) {}
+}
+
 impl<const N: usize> Block for Null<N> {}
 
 impl<const N: usize> Device for Null<N> {
@@ -45,12 +54,6 @@ impl<const N: usize> Device for Null<N> {
     fn len(&self) -> usize {
         N
     }
-
-    fn read(&self, _index: usize) -> u8 {
-        self.0
-    }
-
-    fn write(&mut self, _index: usize, _value: u8) {}
 }
 
 #[cfg(test)]
@@ -71,6 +74,23 @@ mod tests {
         assert!((0x000..0x100)
             .map(|addr| null.read(addr))
             .all(|byte| byte == 0xaa));
+    }
+
+    #[test]
+    fn address_read_works() {
+        let null = Null::<0x100>::with(0xaa);
+        assert!((0x000..0x100)
+            .map(|addr| null.read(addr))
+            .all(|byte| byte == null.0));
+    }
+
+    #[test]
+    fn address_write_works() {
+        let mut null = Null::<0x100>::new();
+        (0x000..0x100).for_each(|addr| null.write(addr, 0xaa));
+        assert!((0x000..0x100)
+            .map(|addr| null.read(addr))
+            .all(|byte| byte == 0));
     }
 
     #[test]
@@ -108,22 +128,5 @@ mod tests {
         assert_eq!(Null::<0x100>::new().len(), 0x100);
         assert_eq!(Null::<0x1000>::new().len(), 0x1000);
         assert_eq!(Null::<0x10000>::new().len(), 0x10000);
-    }
-
-    #[test]
-    fn device_read_works() {
-        let null = Null::<0x100>::with(0xaa);
-        assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
-            .all(|byte| byte == null.0));
-    }
-
-    #[test]
-    fn device_write_works() {
-        let mut null = Null::<0x100>::new();
-        (0x000..0x100).for_each(|addr| null.write(addr, 0xaa));
-        assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
-            .all(|byte| byte == 0));
     }
 }

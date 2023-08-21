@@ -1,8 +1,6 @@
-use std::fmt::{Debug, Display};
 use std::ops::{Deref, DerefMut};
 
 use crate::blk::Block;
-use crate::mem::Memory;
 
 /// Random-access memory model.
 #[derive(Debug)]
@@ -21,8 +19,6 @@ impl<const N: usize> Block for Ram<N> {
         std::mem::take(self);
     }
 }
-
-impl<const N: usize> Memory for Ram<N> {}
 
 impl<const N: usize> Default for Ram<N> {
     fn default() -> Self {
@@ -49,12 +45,6 @@ impl<const N: usize> DerefMut for Ram<N> {
     }
 }
 
-impl<const N: usize> Display for Ram<N> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self as &dyn Memory)
-    }
-}
-
 impl<const N: usize> From<&[u8; N]> for Ram<N> {
     fn from(arr: &[u8; N]) -> Self {
         Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
@@ -64,6 +54,7 @@ impl<const N: usize> From<&[u8; N]> for Ram<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::Address;
     use crate::dev::Device;
 
     #[test]
@@ -84,6 +75,14 @@ mod tests {
         let buf = vec.try_into().unwrap();
         let ram = Ram::<N>::from(&buf);
         assert_eq!(*ram, buf);
+    }
+
+    #[test]
+    fn address_read_write_works() {
+        let mut ram = Ram::<0x1>::new();
+        assert_eq!(ram.read(0x0), 0x00);
+        ram.write(0x0, 0xaa);
+        assert_eq!(ram.read(0x0), 0xaa);
     }
 
     #[test]
@@ -111,13 +110,5 @@ mod tests {
         const N5: usize = 0x10000;
         let ram = Ram::<N5>::new();
         (0..N5).for_each(|addr| assert!(ram.contains(addr)));
-    }
-
-    #[test]
-    fn device_read_write_works() {
-        let mut ram = Ram::<0x1>::new();
-        assert_eq!(ram.read(0x0), 0x00);
-        ram.write(0x0, 0xaa);
-        assert_eq!(ram.read(0x0), 0xaa);
     }
 }

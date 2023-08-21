@@ -1,15 +1,14 @@
-use std::fmt::{Debug, Display};
 use std::ops::Deref;
 
+use crate::arc::Address;
 use crate::blk::Block;
 use crate::dev::Device;
-use crate::mem::Memory;
 
 /// Read-only memory model.
 ///
 /// # Panics
 ///
-/// Panics on [`Device::write`].
+/// Panics on [`Address::write`].
 #[derive(Debug)]
 pub struct Rom<const N: usize>(Box<[u8; N]>);
 
@@ -21,9 +20,20 @@ impl<const N: usize> Rom<N> {
     }
 }
 
-impl<const N: usize> Block for Rom<N> {}
+impl<const N: usize> Address for Rom<N> {
+    fn read(&self, index: usize) -> u8 {
+        self[index]
+    }
 
-impl<const N: usize> Memory for Rom<N> {}
+    /// # Panics
+    ///
+    /// Panics when attempting to write to a [`Rom`].
+    fn write(&mut self, _index: usize, _value: u8) {
+        panic!("called `Address::write()` on a `Rom`");
+    }
+}
+
+impl<const N: usize> Block for Rom<N> {}
 
 impl<const N: usize> Default for Rom<N> {
     fn default() -> Self {
@@ -52,23 +62,6 @@ impl<const N: usize> Device for Rom<N> {
     fn len(&self) -> usize {
         <[u8]>::len(self)
     }
-
-    fn read(&self, index: usize) -> u8 {
-        self[index]
-    }
-
-    /// # Panics
-    ///
-    /// Panics when attempting to write to a [`Rom`].
-    fn write(&mut self, _index: usize, _value: u8) {
-        panic!("called `Device::write()` on a `Rom`");
-    }
-}
-
-impl<const N: usize> Display for Rom<N> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self as &dyn Memory)
-    }
 }
 
 impl<const N: usize> From<&[u8; N]> for Rom<N> {
@@ -80,6 +73,7 @@ impl<const N: usize> From<&[u8; N]> for Rom<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::Address;
     use crate::dev::Device;
 
     #[test]
@@ -103,6 +97,20 @@ mod tests {
     }
 
     #[test]
+    fn address_read_works() {
+        let rom = Rom::<0x1>::from(&[0xaa]);
+        assert_eq!(rom.read(0x0), 0xaa);
+    }
+
+    #[test]
+    #[should_panic]
+    fn address_write_panics() {
+        let mut rom = Rom::<0x1>::from(&[0xaa]);
+        rom.write(0x0, 0xaa);
+    }
+
+    #[test]
+    #[allow(clippy::items_after_statements)]
     fn device_contains_works() {
         const N0: usize = 0x0;
         let rom = Rom::<N0>::new();
@@ -137,18 +145,5 @@ mod tests {
         assert_eq!(Rom::<0x100>::new().len(), 0x100);
         assert_eq!(Rom::<0x1000>::new().len(), 0x1000);
         assert_eq!(Rom::<0x10000>::new().len(), 0x10000);
-    }
-
-    #[test]
-    fn device_read_works() {
-        let rom = Rom::<0x1>::from(&[0xaa]);
-        assert_eq!(rom.read(0x0), 0xaa);
-    }
-
-    #[test]
-    #[should_panic]
-    fn device_write_panics() {
-        let mut rom = Rom::<0x1>::from(&[0xaa]);
-        rom.write(0x0, 0xaa);
     }
 }

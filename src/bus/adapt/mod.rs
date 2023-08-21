@@ -7,9 +7,10 @@
 //! memory-mapped layouts.
 //!
 //! Adapters are themselves a [`Device`](crate::dev::Device), so they use the
-//! same interface as the devices they are modifying. As well, they all own the
-//! devices they modify through a [`SharedDevice`](crate::dev::SharedDevice),
-//! allowing for sharing and reuse elsewhere.
+//! same interface as the devices they are modifying. As well, they either
+//! directely own the devices they modify, or can optionally share access
+//! through a [`Shared`](crate::dev::Shared) or
+//! [`Dynamic`](crate::dev::Dynamic), allowing reuse elsewhere.
 
 pub use self::bank::Bank;
 pub use self::remap::Remap;

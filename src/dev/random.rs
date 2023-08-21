@@ -1,4 +1,5 @@
 use super::Device;
+use crate::arc::Address;
 use crate::blk::Block;
 
 /// Random device.
@@ -19,6 +20,14 @@ impl<const N: usize> Random<N> {
     }
 }
 
+impl<const N: usize> Address for Random<N> {
+    fn read(&self, _index: usize) -> u8 {
+        rand::random()
+    }
+
+    fn write(&mut self, _index: usize, _value: u8) {}
+}
+
 impl<const N: usize> Block for Random<N> {}
 
 impl<const N: usize> Device for Random<N> {
@@ -29,12 +38,6 @@ impl<const N: usize> Device for Random<N> {
     fn len(&self) -> usize {
         N
     }
-
-    fn read(&self, _index: usize) -> u8 {
-        rand::random()
-    }
-
-    fn write(&mut self, _index: usize, _value: u8) {}
 }
 
 #[cfg(test)]
@@ -44,6 +47,21 @@ mod tests {
     #[test]
     fn new_works() {
         let _ = Random::<0x100>::new();
+    }
+
+    #[test]
+    fn address_read_works() {
+        let random = Random::<0x100>::new();
+        (0x000..0x100).for_each(|addr| {
+            let _ = random.read(addr);
+        });
+    }
+
+    #[test]
+    fn address_write_works() {
+        let mut random = Random::<0x100>::new();
+        (0x000..0x100).for_each(|addr| random.write(addr, 0xaa));
+        (0x000..0x100).for_each(|addr| while random.read(addr) == 0xaa {});
     }
 
     #[test]
@@ -81,20 +99,5 @@ mod tests {
         assert_eq!(Random::<0x100>::new().len(), 0x100);
         assert_eq!(Random::<0x1000>::new().len(), 0x1000);
         assert_eq!(Random::<0x10000>::new().len(), 0x10000);
-    }
-
-    #[test]
-    fn device_read_works() {
-        let random = Random::<0x100>::new();
-        (0x000..0x100).for_each(|addr| {
-            let _ = random.read(addr);
-        });
-    }
-
-    #[test]
-    fn device_write_works() {
-        let mut random = Random::<0x100>::new();
-        (0x000..0x100).for_each(|addr| random.write(addr, 0xaa));
-        (0x000..0x100).for_each(|addr| while random.read(addr) == 0xaa {});
     }
 }
