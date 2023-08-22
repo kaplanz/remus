@@ -8,7 +8,6 @@
 //! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
 
 use std::cell::{Ref, RefCell, RefMut};
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use crate::arc::Address;
@@ -51,26 +50,13 @@ pub trait Device: Address + Block {
     }
 }
 
-impl<T> Device for T
-where
-    T: Address + Block + Deref<Target = [u8]> + DerefMut,
-{
-    fn contains(&self, index: usize) -> bool {
-        (0..self.len()).contains(&index)
-    }
-
-    fn len(&self) -> usize {
-        <[u8]>::len(self)
-    }
-}
-
 type Inner<T> = Rc<RefCell<T>>;
 
 /// Runtime generic shared device.
 pub type Dynamic = Shared<dyn Device>;
 
 /// Heap-allocated multi-access device.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Shared<D: Device + ?Sized>(Inner<D>);
 
 impl<D: Device + 'static> Shared<D> {

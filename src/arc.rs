@@ -1,7 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
-use crate::Block;
-
 /// Addressable read-write interface.
 pub trait Address {
     /// Reads from the specified address.
@@ -9,19 +5,6 @@ pub trait Address {
 
     /// Writes to the specified address.
     fn write(&mut self, addr: usize, value: u8);
-}
-
-impl<T> Address for T
-where
-    T: Block + Deref<Target = [u8]> + DerefMut,
-{
-    fn read(&self, index: usize) -> u8 {
-        self[index]
-    }
-
-    fn write(&mut self, index: usize, value: u8) {
-        self[index] = value;
-    }
 }
 
 /// Processor load-store interface.

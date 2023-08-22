@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::blk::Block;
+use crate::{Address, Device};
 
 /// Random-access memory model.
 #[derive(Debug)]
@@ -11,6 +12,16 @@ impl<const N: usize> Ram<N> {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+}
+
+impl<const N: usize> Address for Ram<N> {
+    fn read(&self, addr: usize) -> u8 {
+        self[addr]
+    }
+
+    fn write(&mut self, addr: usize, value: u8) {
+        self[addr] = value;
     }
 }
 
@@ -42,6 +53,16 @@ impl<const N: usize> Deref for Ram<N> {
 impl<const N: usize> DerefMut for Ram<N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.0
+    }
+}
+
+impl<const N: usize> Device for Ram<N> {
+    fn contains(&self, index: usize) -> bool {
+        (0..self.len()).contains(&index)
+    }
+
+    fn len(&self) -> usize {
+        <[u8]>::len(self)
     }
 }
 
