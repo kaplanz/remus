@@ -8,7 +8,7 @@ pub trait Address {
 }
 
 /// Processor load-store interface.
-pub trait Processor<V> {
+pub trait Location<V> {
     /// Accessor for specifying registers.
     ///
     /// This should normally be implemented as an enum of reguster names.

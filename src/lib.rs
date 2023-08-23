@@ -22,7 +22,7 @@ pub mod dev;
 pub mod mem;
 pub mod reg;
 
-pub use self::arc::{Address, Processor};
+pub use self::arc::{Address, Location};
 pub use self::blk::Block;
 pub use self::clk::Clock;
 #[doc(inline)]
