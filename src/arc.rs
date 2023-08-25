@@ -10,8 +10,23 @@ where
     fn write(&mut self, addr: usize, value: V);
 }
 
+/// Register load-store interface.
+pub trait Cell<V>
+where
+    V: Copy + Default,
+{
+    /// Loads the register's value.
+    fn load(&self) -> V;
+
+    /// Stores the value into the register.
+    fn store(&mut self, value: V);
+}
+
 /// Processor load-store interface.
-pub trait Location<V> {
+pub trait Location<V>
+where
+    V: Copy + Default,
+{
     /// Accessor for specifying registers.
     ///
     /// This should normally be implemented as an enum of register names.

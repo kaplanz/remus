@@ -22,7 +22,7 @@ pub mod dev;
 pub mod mem;
 pub mod reg;
 
-pub use self::arc::{Address, Location};
+pub use self::arc::{Address, Cell, Location};
 pub use self::blk::Block;
 pub use self::clk::Clock;
 #[doc(inline)]
@@ -30,4 +30,3 @@ pub use self::dev::{Device, Dynamic, Shared};
 pub use self::fsm::Machine;
 #[doc(inline)]
 pub use self::pcb::Board;
-pub use self::reg::Cell;

@@ -22,21 +22,9 @@ use std::ops::{Deref, DerefMut};
 
 use num::Unsigned;
 
-use crate::arc::Address;
+use crate::arc::{Address, Cell};
 use crate::blk::Block;
 use crate::dev::Device;
-
-/// Register load-store interface.
-pub trait Cell<V>
-where
-    V: Copy + Default,
-{
-    /// Loads the register's value.
-    fn load(&self) -> V;
-
-    /// Stores the value into the register.
-    fn store(&mut self, value: V);
-}
 
 /// Register model.
 #[derive(Debug, Default)]

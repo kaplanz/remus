@@ -10,9 +10,8 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crate::arc::Address;
+use crate::arc::{Address, Cell};
 use crate::blk::Block;
-use crate::reg::Cell;
 
 mod null;
 mod random;
