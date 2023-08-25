@@ -17,12 +17,12 @@ impl<const N: usize> Ram<N> {
 }
 
 impl<const N: usize> Address<u8> for Ram<N> {
-    fn read(&self, addr: usize) -> u8 {
-        self[addr]
+    fn read(&self, index: usize) -> u8 {
+        self[index]
     }
 
-    fn write(&mut self, addr: usize, value: u8) {
-        self[addr] = value;
+    fn write(&mut self, index: usize, value: u8) {
+        self[index] = value;
     }
 }
 

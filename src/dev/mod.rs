@@ -85,12 +85,12 @@ impl<D: Device + ?Sized> Shared<D> {
 }
 
 impl<D: Device + ?Sized> Address<u8> for Shared<D> {
-    fn read(&self, addr: usize) -> u8 {
-        self.borrow().read(addr)
+    fn read(&self, index: usize) -> u8 {
+        self.borrow().read(index)
     }
 
-    fn write(&mut self, addr: usize, value: u8) {
-        self.borrow_mut().write(addr, value);
+    fn write(&mut self, index: usize, value: u8) {
+        self.borrow_mut().write(index, value);
     }
 }
 

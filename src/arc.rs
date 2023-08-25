@@ -4,10 +4,10 @@ where
     V: Copy + Default,
 {
     /// Reads from the specified address.
-    fn read(&self, addr: usize) -> V;
+    fn read(&self, index: usize) -> V;
 
     /// Writes to the specified address.
-    fn write(&mut self, addr: usize, value: V);
+    fn write(&mut self, index: usize, value: V);
 }
 
 /// Register load-store interface.
