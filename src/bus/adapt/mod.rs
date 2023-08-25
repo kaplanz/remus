@@ -8,7 +8,7 @@
 //!
 //! Adapters are themselves a [`Device`](crate::dev::Device), so they use the
 //! same interface as the devices they are modifying. As well, they either
-//! directely own the devices they modify, or can optionally share access
+//! directly own the devices they modify, or can optionally share access
 //! through a [`Shared`](crate::dev::Shared) or
 //! [`Dynamic`](crate::dev::Dynamic), allowing reuse elsewhere.
 

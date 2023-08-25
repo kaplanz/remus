@@ -11,7 +11,7 @@ pub trait Address {
 pub trait Location<V> {
     /// Accessor for specifying registers.
     ///
-    /// This should normally be implemented as an enum of reguster names.
+    /// This should normally be implemented as an enum of register names.
     type Register;
 
     /// Loads from the specified register.
