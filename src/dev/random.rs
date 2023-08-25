@@ -40,6 +40,7 @@ impl<const N: usize> Device for Random<N> {
     }
 }
 
+#[allow(clippy::items_after_statements)]
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -72,6 +72,8 @@ impl<const N: usize> From<&[u8; N]> for Ram<N> {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
+#[allow(clippy::items_after_statements)]
 #[cfg(test)]
 mod tests {
     use super::*;

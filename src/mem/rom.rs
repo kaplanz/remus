@@ -70,6 +70,7 @@ impl<const N: usize> From<&[u8; N]> for Rom<N> {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -56,6 +56,7 @@ impl<const N: usize> Device for Null<N> {
     }
 }
 
+#[allow(clippy::items_after_statements)]
 #[cfg(test)]
 mod tests {
     use super::*;

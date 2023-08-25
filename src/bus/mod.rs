@@ -127,6 +127,8 @@ impl<const N: usize> From<[(usize, Dynamic); N]> for Bus {
     }
 }
 
+#[allow(clippy::items_after_statements)]
+#[allow(clippy::range_plus_one)]
 #[cfg(test)]
 mod tests {
     use super::*;
