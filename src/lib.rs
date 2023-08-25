@@ -30,3 +30,4 @@ pub use self::dev::{Device, Dynamic, Shared};
 pub use self::fsm::Machine;
 #[doc(inline)]
 pub use self::pcb::Board;
+pub use self::reg::Cell;

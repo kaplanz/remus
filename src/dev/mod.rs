@@ -12,6 +12,7 @@ use std::rc::Rc;
 
 use crate::arc::Address;
 use crate::blk::Block;
+use crate::reg::Cell;
 
 mod null;
 mod random;
@@ -97,6 +98,20 @@ impl<D: Device + ?Sized> Address<u8> for Shared<D> {
 impl<D: Device + ?Sized> Block for Shared<D> {
     fn reset(&mut self) {
         self.borrow_mut().reset();
+    }
+}
+
+impl<D, V> Cell<V> for Shared<D>
+where
+    D: Cell<V> + Device + ?Sized,
+    V: Copy + Default,
+{
+    fn load(&self) -> V {
+        self.borrow().load()
+    }
+
+    fn store(&mut self, value: V) {
+        self.borrow_mut().store(value);
     }
 }
 

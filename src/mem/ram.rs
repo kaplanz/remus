@@ -1,7 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
+use crate::arc::Address;
 use crate::blk::Block;
-use crate::{Address, Device};
+use crate::dev::Device;
 
 /// Random-access memory model.
 #[derive(Debug)]
