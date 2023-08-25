@@ -20,7 +20,7 @@ impl<const N: usize> Rom<N> {
     }
 }
 
-impl<const N: usize> Address for Rom<N> {
+impl<const N: usize> Address<u8> for Rom<N> {
     fn read(&self, index: usize) -> u8 {
         self[index]
     }

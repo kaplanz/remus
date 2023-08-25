@@ -26,6 +26,18 @@ use crate::arc::Address;
 use crate::blk::Block;
 use crate::dev::Device;
 
+/// Register load-store interface.
+pub trait Cell<V>
+where
+    V: Copy + Default,
+{
+    /// Loads the register's value.
+    fn load(&self) -> V;
+
+    /// Stores the value into the register.
+    fn store(&mut self, value: V);
+}
+
 /// Register model.
 #[derive(Debug, Default)]
 pub struct Register<U: Unsigned>(U);
@@ -41,7 +53,7 @@ where
     }
 }
 
-impl Address for Register<u8> {
+impl Address<u8> for Register<u8> {
     fn read(&self, index: usize) -> u8 {
         self.to_le_bytes()[index]
     }
@@ -53,7 +65,7 @@ impl Address for Register<u8> {
     }
 }
 
-impl Address for Register<u16> {
+impl Address<u8> for Register<u16> {
     fn read(&self, index: usize) -> u8 {
         self.to_le_bytes()[index]
     }
@@ -65,7 +77,7 @@ impl Address for Register<u16> {
     }
 }
 
-impl Address for Register<u32> {
+impl Address<u8> for Register<u32> {
     fn read(&self, index: usize) -> u8 {
         self.to_le_bytes()[index]
     }
@@ -77,7 +89,7 @@ impl Address for Register<u32> {
     }
 }
 
-impl Address for Register<u64> {
+impl Address<u8> for Register<u64> {
     fn read(&self, index: usize) -> u8 {
         self.to_le_bytes()[index]
     }
@@ -89,7 +101,7 @@ impl Address for Register<u64> {
     }
 }
 
-impl Address for Register<u128> {
+impl Address<u8> for Register<u128> {
     fn read(&self, index: usize) -> u8 {
         self.to_le_bytes()[index]
     }
@@ -98,6 +110,19 @@ impl Address for Register<u128> {
         let mut bytes = self.to_le_bytes();
         bytes[index] = value;
         self.0 = u128::from_le_bytes(bytes);
+    }
+}
+
+impl<U> Cell<U> for Register<U>
+where
+    U: Copy + Default + Unsigned,
+{
+    fn load(&self) -> U {
+        self.0
+    }
+
+    fn store(&mut self, value: U) {
+        self.0 = value;
     }
 }
 
@@ -133,7 +158,7 @@ impl<U: Unsigned> From<U> for Register<U> {
 impl<U> Device for Register<U>
 where
     U: Debug + Default + Unsigned,
-    Register<U>: Address,
+    Register<U>: Address<u8>,
 {
     fn contains(&self, index: usize) -> bool {
         (0..self.len()).contains(&index)

@@ -20,7 +20,7 @@ impl<const N: usize> Random<N> {
     }
 }
 
-impl<const N: usize> Address for Random<N> {
+impl<const N: usize> Address<u8> for Random<N> {
     fn read(&self, _index: usize) -> u8 {
         rand::random()
     }

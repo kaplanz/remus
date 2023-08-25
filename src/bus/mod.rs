@@ -76,7 +76,7 @@ impl Bus {
     }
 }
 
-impl Address for Bus {
+impl Address<u8> for Bus {
     fn read(&self, index: usize) -> u8 {
         let (base, dev) = self.at(index).unwrap();
         dev.read(index - base)

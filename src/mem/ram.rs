@@ -15,7 +15,7 @@ impl<const N: usize> Ram<N> {
     }
 }
 
-impl<const N: usize> Address for Ram<N> {
+impl<const N: usize> Address<u8> for Ram<N> {
     fn read(&self, addr: usize) -> u8 {
         self[addr]
     }

@@ -36,7 +36,7 @@ impl<const N: usize> Null<N> {
     }
 }
 
-impl<const N: usize> Address for Null<N> {
+impl<const N: usize> Address<u8> for Null<N> {
     fn read(&self, _index: usize) -> u8 {
         self.0
     }

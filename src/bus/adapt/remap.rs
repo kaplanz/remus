@@ -28,7 +28,7 @@ impl<D: Device> Remap<D> {
     }
 }
 
-impl<D: Device> Address for Remap<D> {
+impl<D: Device> Address<u8> for Remap<D> {
     fn read(&self, index: usize) -> u8 {
         let index = (index as isize - self.offset) as usize;
         self.dev.read(index)

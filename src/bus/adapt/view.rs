@@ -43,7 +43,7 @@ where
             }
     }
 }
-impl<D, R> Address for View<D, R>
+impl<D, R> Address<u8> for View<D, R>
 where
     D: Device,
     R: Debug + RangeBounds<usize>,

@@ -57,7 +57,7 @@ impl Bank {
     }
 }
 
-impl Address for Bank {
+impl Address<u8> for Bank {
     fn read(&self, index: usize) -> u8 {
         self.banks[self.sel].read(index)
     }

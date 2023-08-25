@@ -20,7 +20,7 @@ pub use self::null::Null;
 pub use self::random::Random;
 
 /// Memory-mapped I/O device.
-pub trait Device: Address + Block {
+pub trait Device: Address<u8> + Block {
     /// Checks if the device contains the provided `index` within its
     /// address space.
     fn contains(&self, index: usize) -> bool;
@@ -84,7 +84,7 @@ impl<D: Device + ?Sized> Shared<D> {
     }
 }
 
-impl<D: Device + ?Sized> Address for Shared<D> {
+impl<D: Device + ?Sized> Address<u8> for Shared<D> {
     fn read(&self, addr: usize) -> u8 {
         self.borrow().read(addr)
     }
