@@ -6,8 +6,7 @@
 //! over the unsigned integer types, representing registers holding values of
 //! types [`u8`], [`u16`], [`u32`], [`u64`], and [`u128`] respectively.
 //!
-//! To provide access as the represented type, `Register` implements [`Deref`]
-//! and [`DerefMut`] ([newtype pattern]).
+//! To provide access as the represented type, `Register` implements [`Cell`].
 //!
 //! Since `Register` implements [`Device`], it may be mapped to another address
 //! space using a [`Bus`](crate::bus::Bus), and is [byte-addressable] through
@@ -18,7 +17,6 @@
 
 use std::default::Default;
 use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
 
 use num::Unsigned;
 
@@ -43,11 +41,11 @@ where
 
 impl Address<u8> for Register<u8> {
     fn read(&self, index: usize) -> u8 {
-        self.to_le_bytes()[index]
+        self.0.to_le_bytes()[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let mut bytes = self.to_le_bytes();
+        let mut bytes = self.0.to_le_bytes();
         bytes[index] = value;
         self.0 = u8::from_le_bytes(bytes);
     }
@@ -55,11 +53,11 @@ impl Address<u8> for Register<u8> {
 
 impl Address<u8> for Register<u16> {
     fn read(&self, index: usize) -> u8 {
-        self.to_le_bytes()[index]
+        self.0.to_le_bytes()[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let mut bytes = self.to_le_bytes();
+        let mut bytes = self.0.to_le_bytes();
         bytes[index] = value;
         self.0 = u16::from_le_bytes(bytes);
     }
@@ -67,11 +65,11 @@ impl Address<u8> for Register<u16> {
 
 impl Address<u8> for Register<u32> {
     fn read(&self, index: usize) -> u8 {
-        self.to_le_bytes()[index]
+        self.0.to_le_bytes()[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let mut bytes = self.to_le_bytes();
+        let mut bytes = self.0.to_le_bytes();
         bytes[index] = value;
         self.0 = u32::from_le_bytes(bytes);
     }
@@ -79,11 +77,11 @@ impl Address<u8> for Register<u32> {
 
 impl Address<u8> for Register<u64> {
     fn read(&self, index: usize) -> u8 {
-        self.to_le_bytes()[index]
+        self.0.to_le_bytes()[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let mut bytes = self.to_le_bytes();
+        let mut bytes = self.0.to_le_bytes();
         bytes[index] = value;
         self.0 = u64::from_le_bytes(bytes);
     }
@@ -91,11 +89,11 @@ impl Address<u8> for Register<u64> {
 
 impl Address<u8> for Register<u128> {
     fn read(&self, index: usize) -> u8 {
-        self.to_le_bytes()[index]
+        self.0.to_le_bytes()[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        let mut bytes = self.to_le_bytes();
+        let mut bytes = self.0.to_le_bytes();
         bytes[index] = value;
         self.0 = u128::from_le_bytes(bytes);
     }
@@ -120,20 +118,6 @@ where
 {
     fn reset(&mut self) {
         std::mem::take(self);
-    }
-}
-
-impl<U: Unsigned> Deref for Register<U> {
-    type Target = U;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<U: Unsigned> DerefMut for Register<U> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
@@ -235,78 +219,78 @@ mod tests {
         // 8-bit register
         let mut r8 = Register::<u8>::new();
         r8.write(0, 0xaa);
-        assert_eq!(r8.read(0), 0xaa_u8);
+        assert_eq!(r8.load(), 0xaa_u8);
 
         // 16-bit register
         let mut r16 = Register::<u16>::new();
         r16.write(1, 0xbb);
-        assert_eq!(*r16, 0xbb00_u16);
+        assert_eq!(r16.load(), 0xbb00_u16);
 
         // 32-bit register
         let mut r32 = Register::<u32>::new();
         r32.write(2, 0xcc);
-        assert_eq!(*r32, 0x00cc_0000_u32);
+        assert_eq!(r32.load(), 0x00cc_0000_u32);
 
         // 64-bit register
         let mut r64 = Register::<u64>::new();
         r64.write(4, 0xdd);
-        assert_eq!(*r64, 0x0000_00dd_0000_0000_u64);
+        assert_eq!(r64.load(), 0x0000_00dd_0000_0000_u64);
 
         // 128-bit register
         let mut r128 = Register::<u128>::new();
         r128.write(8, 0xee);
-        assert_eq!(*r128, 0x0000_0000_0000_00ee_0000_0000_0000_0000_u128);
+        assert_eq!(r128.load(), 0x0000_0000_0000_00ee_0000_0000_0000_0000_u128);
     }
 
     #[test]
     fn deref_works() {
         // 8-bit register
         let r8 = Register::<u8>::from(0x01_u8);
-        assert_eq!(*r8, 0x01_u8);
+        assert_eq!(r8.load(), 0x01_u8);
 
         // 16-bit register
         let r16 = Register::<u16>::from(0x0123_u16);
-        assert_eq!(*r16, 0x0123_u16);
+        assert_eq!(r16.load(), 0x0123_u16);
 
         // 32-bit register
         let r32 = Register::<u32>::from(0x0123_4567_u32);
-        assert_eq!(*r32, 0x0123_4567_u32);
+        assert_eq!(r32.load(), 0x0123_4567_u32);
 
         // 64-bit register
         let r64 = Register::<u64>::from(0x0123_4567_89ab_cdef_u64);
-        assert_eq!(*r64, 0x0123_4567_89ab_cdef_u64);
+        assert_eq!(r64.load(), 0x0123_4567_89ab_cdef_u64);
 
         // 128-bit register
         let r128 = Register::<u128>::from(0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
-        assert_eq!(*r128, 0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
+        assert_eq!(r128.load(), 0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
     }
 
     #[test]
     fn deref_mut_works() {
         // 8-bit register
         let mut r8 = Register::<u8>::new();
-        *r8 = 0x01_u8;
-        assert_eq!(*r8, 0x01_u8);
+        r8.store(0x01_u8);
+        assert_eq!(r8.load(), 0x01_u8);
 
         // 16-bit register
         let mut r16 = Register::<u16>::new();
-        *r16 = 0x0123_u16;
-        assert_eq!(*r16, 0x0123_u16);
+        r16.store(0x0123_u16);
+        assert_eq!(r16.load(), 0x0123_u16);
 
         // 32-bit register
         let mut r32 = Register::<u32>::new();
-        *r32 = 0x0123_4567_u32;
-        assert_eq!(*r32, 0x0123_4567_u32);
+        r32.store(0x0123_4567_u32);
+        assert_eq!(r32.load(), 0x0123_4567_u32);
 
         // 64-bit register
         let mut r64 = Register::<u64>::new();
-        *r64 = 0x0123_4567_89ab_cdef_u64;
-        assert_eq!(*r64, 0x0123_4567_89ab_cdef_u64);
+        r64.store(0x0123_4567_89ab_cdef_u64);
+        assert_eq!(r64.load(), 0x0123_4567_89ab_cdef_u64);
 
         // 128-bit register
         let mut r128 = Register::<u128>::new();
-        *r128 = 0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128;
-        assert_eq!(*r128, 0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
+        r128.store(0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
+        assert_eq!(r128.load(), 0x0123_4567_89ab_cdef_0123_4567_89ab_cdef_u128);
     }
 
     #[test]
