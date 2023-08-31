@@ -46,13 +46,15 @@ impl Clock {
         // Create a receiver/sender pair for transmitting clock ticks
         let (tx, rx) = mpsc::channel();
         // Create an atomic bool as the enable signal
-        let go = Arc::new(AtomicBool::new(false));
-        let go2 = go.clone();
+        let go = Arc::new(AtomicBool::new(true));
 
         // Spin up the run-thread
-        thread::spawn(move || {
-            Self::run(dx, &go2, &tx);
-        });
+        {
+            let go = go.clone();
+            thread::spawn(move || {
+                Self::run(dx, &go, &tx);
+            });
+        }
 
         // Return the constructed clock
         Clock { dx, go, rx }
