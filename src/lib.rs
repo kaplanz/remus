@@ -23,7 +23,7 @@ pub mod mem;
 pub mod reg;
 
 pub use self::arc::{Address, Cell, Location};
-pub use self::blk::Block;
+pub use self::blk::{Block, Linked};
 pub use self::clk::Clock;
 #[doc(inline)]
 pub use self::dev::{Device, Dynamic, Shared};
