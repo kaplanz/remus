@@ -1,6 +1,6 @@
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
+
+use crate::share::Shared;
 
 /// Integrated circuit block.
 pub trait Block: Debug {
@@ -20,11 +20,11 @@ pub trait Block: Debug {
     fn reset(&mut self) {}
 }
 
-/// Shared [`Block`] instance.
+/// Linked [`Block`] instance.
 pub trait Linked<T: Block>: Block {
-    /// Gets a shared copy of the instance.
-    fn mine(&self) -> Rc<RefCell<T>>;
+    /// Gets an owning reference to the instance.
+    fn mine(&self) -> Shared<T>;
 
     /// Links this block's to the provided instance.
-    fn link(&mut self, it: Rc<RefCell<T>>);
+    fn link(&mut self, it: Shared<T>);
 }

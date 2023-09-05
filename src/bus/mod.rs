@@ -2,7 +2,7 @@
 //!
 //! # Usage
 //!
-//! The [`Bus`] trait allows the user to mount another [`Device`] to
+//! The [`Bus`] struct allows the user to mount another [`Device`] to
 //! anywhere within the address space. As it itself implements `Device`, it
 //! may be mapped in a nested fashion.
 //!
@@ -14,7 +14,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use crate::arc::Address;
+use crate::arch::Address;
 use crate::blk::Block;
 use crate::dev::{Device, Dynamic};
 

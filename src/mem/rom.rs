@@ -1,6 +1,4 @@
-use std::ops::Deref;
-
-use crate::arc::Address;
+use crate::arch::Address;
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -22,7 +20,7 @@ impl<const N: usize> Rom<N> {
 
 impl<const N: usize> Address<u8> for Rom<N> {
     fn read(&self, index: usize) -> u8 {
-        self[index]
+        self.0[index]
     }
 
     /// # Panics
@@ -46,21 +44,13 @@ impl<const N: usize> Default for Rom<N> {
     }
 }
 
-impl<const N: usize> Deref for Rom<N> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
-
 impl<const N: usize> Device for Rom<N> {
     fn contains(&self, index: usize) -> bool {
         (0..self.len()).contains(&index)
     }
 
     fn len(&self) -> usize {
-        <[u8]>::len(self)
+        <[u8]>::len(&*self.0)
     }
 }
 
@@ -74,13 +64,13 @@ impl<const N: usize> From<&[u8; N]> for Rom<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::Address;
+    use crate::arch::Address;
     use crate::dev::Device;
 
     #[test]
     fn new_works() {
         let rom = Rom::<0x100>::new();
-        assert!(rom.iter().all(|&byte| byte == 0));
+        assert!(rom.0.iter().all(|&byte| byte == 0));
     }
 
     #[test]
@@ -89,12 +79,12 @@ mod tests {
 
         let arr = [0; N];
         let rom = Rom::<N>::from(&arr);
-        assert_eq!(*rom, arr);
+        assert_eq!(*rom.0, arr);
 
         let vec: Vec<u8> = (0..N).map(|x| x as u8).collect();
         let buf = vec.try_into().unwrap();
         let rom = Rom::<N>::from(&buf);
-        assert_eq!(*rom, buf);
+        assert_eq!(*rom.0, buf);
     }
 
     #[test]

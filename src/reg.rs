@@ -20,7 +20,7 @@ use std::fmt::Debug;
 
 use num::Unsigned;
 
-use crate::arc::{Address, Cell};
+use crate::arch::{Address, Cell};
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -243,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn deref_works() {
+    fn cell_load_works() {
         // 8-bit register
         let r8 = Register::<u8>::from(0x01_u8);
         assert_eq!(r8.load(), 0x01_u8);
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn deref_mut_works() {
+    fn cell_store_works() {
         // 8-bit register
         let mut r8 = Register::<u8>::new();
         r8.store(0x01_u8);

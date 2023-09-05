@@ -11,22 +11,21 @@
 
 #![warn(clippy::pedantic)]
 
-mod arc;
+mod arch;
 mod blk;
 mod clk;
 mod fsm;
 mod pcb;
+mod share;
 
 pub mod bus;
 pub mod dev;
 pub mod mem;
 pub mod reg;
 
-pub use self::arc::{Address, Cell, Location};
+pub use self::arch::{Address, Cell, Location};
 pub use self::blk::{Block, Linked};
 pub use self::clk::Clock;
-#[doc(inline)]
-pub use self::dev::{Device, Dynamic, Shared};
 pub use self::fsm::Machine;
-#[doc(inline)]
 pub use self::pcb::Board;
+pub use self::share::Shared;

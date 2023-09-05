@@ -1,6 +1,4 @@
-use std::ops::{Deref, DerefMut};
-
-use crate::arc::Address;
+use crate::arch::Address;
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -18,11 +16,11 @@ impl<const N: usize> Ram<N> {
 
 impl<const N: usize> Address<u8> for Ram<N> {
     fn read(&self, index: usize) -> u8 {
-        self[index]
+        self.0[index]
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        self[index] = value;
+        self.0[index] = value;
     }
 }
 
@@ -43,27 +41,13 @@ impl<const N: usize> Default for Ram<N> {
     }
 }
 
-impl<const N: usize> Deref for Ram<N> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
-
-impl<const N: usize> DerefMut for Ram<N> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut *self.0
-    }
-}
-
 impl<const N: usize> Device for Ram<N> {
     fn contains(&self, index: usize) -> bool {
         (0..self.len()).contains(&index)
     }
 
     fn len(&self) -> usize {
-        <[u8]>::len(self)
+        <[u8]>::len(&*self.0)
     }
 }
 
@@ -78,13 +62,13 @@ impl<const N: usize> From<&[u8; N]> for Ram<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::Address;
+    use crate::arch::Address;
     use crate::dev::Device;
 
     #[test]
     fn new_works() {
         let ram = Ram::<0x100>::new();
-        assert!(ram.iter().all(|&byte| byte == 0));
+        assert!(ram.0.iter().all(|&byte| byte == 0));
     }
 
     #[test]
@@ -93,12 +77,12 @@ mod tests {
 
         let arr = [0; N];
         let ram = Ram::<N>::from(&arr);
-        assert_eq!(*ram, arr);
+        assert_eq!(*ram.0, arr);
 
         let vec: Vec<u8> = (0..N).map(|x| x as u8).collect();
         let buf = vec.try_into().unwrap();
         let ram = Ram::<N>::from(&buf);
-        assert_eq!(*ram, buf);
+        assert_eq!(*ram.0, buf);
     }
 
     #[test]

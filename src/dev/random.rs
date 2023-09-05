@@ -1,5 +1,5 @@
 use super::Device;
-use crate::arc::Address;
+use crate::arch::Address;
 use crate::blk::Block;
 
 /// Random device.

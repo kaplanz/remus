@@ -1,7 +1,7 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::cast_sign_loss)]
 
-use crate::arc::Address;
+use crate::arch::Address;
 use crate::blk::Block;
 use crate::dev::Device;
 
