@@ -52,6 +52,46 @@ pub trait Device: Address<u8> + Block {
 
 type Inner<T> = Rc<RefCell<T>>;
 
+impl<D: Address<u8> + ?Sized> Address<u8> for Inner<D> {
+    fn read(&self, index: usize) -> u8 {
+        self.borrow().read(index)
+    }
+
+    fn write(&mut self, index: usize, value: u8) {
+        self.borrow_mut().write(index, value);
+    }
+}
+
+impl<D: Block + ?Sized> Block for Inner<D> {
+    fn reset(&mut self) {
+        self.borrow_mut().reset();
+    }
+}
+
+impl<D, V> Cell<V> for Inner<D>
+where
+    D: Cell<V> + ?Sized,
+    V: Copy + Default,
+{
+    fn load(&self) -> V {
+        self.borrow().load()
+    }
+
+    fn store(&mut self, value: V) {
+        self.borrow_mut().store(value);
+    }
+}
+
+impl<D: Device + ?Sized> Device for Inner<D> {
+    fn contains(&self, index: usize) -> bool {
+        self.borrow().contains(index)
+    }
+
+    fn len(&self) -> usize {
+        self.borrow().len()
+    }
+}
+
 /// Runtime generic shared device.
 pub type Dynamic = Shared<dyn Device>;
 
@@ -98,17 +138,17 @@ impl<D: Device + ?Sized> Shared<D> {
 
 impl<D: Device + ?Sized> Address<u8> for Shared<D> {
     fn read(&self, index: usize) -> u8 {
-        self.borrow().read(index)
+        self.0.read(index)
     }
 
     fn write(&mut self, index: usize, value: u8) {
-        self.borrow_mut().write(index, value);
+        self.0.write(index, value);
     }
 }
 
 impl<D: Device + ?Sized> Block for Shared<D> {
     fn reset(&mut self) {
-        self.borrow_mut().reset();
+        self.0.reset();
     }
 }
 
@@ -118,11 +158,11 @@ where
     V: Copy + Default,
 {
     fn load(&self) -> V {
-        self.borrow().load()
+        self.0.load()
     }
 
     fn store(&mut self, value: V) {
-        self.borrow_mut().store(value);
+        self.0.store(value);
     }
 }
 
@@ -134,11 +174,11 @@ impl<D: Device + ?Sized> Clone for Shared<D> {
 
 impl<D: Device + ?Sized> Device for Shared<D> {
     fn contains(&self, index: usize) -> bool {
-        self.borrow().contains(index)
+        self.0.contains(index)
     }
 
     fn len(&self) -> usize {
-        self.borrow().len()
+        self.0.len()
     }
 }
 
