@@ -65,6 +65,18 @@ impl<D: Device + 'static> Shared<D> {
         Self(Rc::new(RefCell::new(dev)))
     }
 
+    /// Gets a reference to the underlying inner smart pointer.
+    #[must_use]
+    pub fn inner(&self) -> &Inner<D> {
+        &self.0
+    }
+
+    /// Mutably gets a reference to the underlying inner smart pointer.
+    #[must_use]
+    pub fn inner_mut(&mut self) -> &mut Inner<D> {
+        &mut self.0
+    }
+
     /// Converts a [`Shared`] into a [`Dynamic`] device.
     #[must_use]
     pub fn to_dynamic(self) -> Dynamic {
