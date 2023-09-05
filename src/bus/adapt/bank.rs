@@ -92,10 +92,10 @@ impl Device for Bank {
     }
 }
 
-impl From<Vec<Dynamic>> for Bank {
-    fn from(banks: Vec<Dynamic>) -> Self {
+impl From<&[Dynamic]> for Bank {
+    fn from(banks: &[Dynamic]) -> Self {
         Self {
-            banks,
+            banks: Vec::from(banks),
             ..Default::default()
         }
     }
