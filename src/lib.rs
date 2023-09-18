@@ -22,6 +22,7 @@ pub mod bus;
 pub mod dev;
 pub mod mem;
 pub mod reg;
+pub mod wired;
 
 pub use self::arch::{Address, Cell, Location};
 pub use self::blk::{Block, Linked};
