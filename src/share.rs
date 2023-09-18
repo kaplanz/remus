@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crate::arch::{Address, Cell, Location};
+use crate::arch::{Address, Cell, Location, Value};
 use crate::blk::{Block, Linked};
 use crate::bus::Bus;
 use crate::dev::Device;
@@ -9,7 +9,7 @@ use crate::fsm::Machine;
 use crate::pcb::Board;
 
 /// Heap-allocated multi-access resource.
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Default)]
 pub struct Shared<T: ?Sized>(pub(crate) Inner<T>);
 
 impl<T> Shared<T>
@@ -49,15 +49,17 @@ where
     }
 }
 
-impl<T> Address<u8> for Shared<T>
+impl<T, Idx: Value, V: Value> Address<Idx, V> for Shared<T>
 where
-    T: Address<u8> + ?Sized,
+    T: Address<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn read(&self, index: usize) -> u8 {
+    fn read(&self, index: Idx) -> V {
         self.0.read(index)
     }
 
-    fn write(&mut self, index: usize, value: u8) {
+    fn write(&mut self, index: Idx, value: V) {
         self.0.write(index, value);
     }
 }
@@ -71,15 +73,17 @@ where
     }
 }
 
-impl<T> Board for Shared<T>
+impl<T, Idx, V> Board<Idx, V> for Shared<T>
 where
-    T: Board + ?Sized,
+    T: Board<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn connect(&self, bus: &mut Bus) {
+    fn connect(&self, bus: &mut Bus<Idx, V>) {
         self.0.connect(bus);
     }
 
-    fn disconnect(&self, bus: &mut Bus) {
+    fn disconnect(&self, bus: &mut Bus<Idx, V>) {
         self.0.disconnect(bus);
     }
 }
@@ -87,7 +91,7 @@ where
 impl<T, V> Cell<V> for Shared<T>
 where
     T: Cell<V> + ?Sized,
-    V: Copy + Default,
+    V: Value,
 {
     fn load(&self) -> V {
         self.0.load()
@@ -107,17 +111,12 @@ where
     }
 }
 
-impl<T> Device for Shared<T>
+impl<T, Idx, V> Device<Idx, V> for Shared<T>
 where
-    T: Device + ?Sized,
+    T: Device<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn contains(&self, index: usize) -> bool {
-        self.0.contains(index)
-    }
-
-    fn len(&self) -> usize {
-        self.0.len()
-    }
 }
 
 impl<T> From<T> for Shared<T>
@@ -138,6 +137,8 @@ where
     }
 }
 
+impl<T: ?Sized> Eq for Shared<T> {}
+
 impl<T, B> Linked<B> for Shared<T>
 where
     T: Linked<B> + ?Sized,
@@ -155,7 +156,7 @@ where
 impl<T, V> Location<V> for Shared<T>
 where
     T: Location<V> + ?Sized,
-    V: Copy + Default,
+    V: Value,
 {
     type Register = T::Register;
 
@@ -184,15 +185,17 @@ where
 /// Internal shared reference type.
 pub(crate) type Inner<T> = Rc<RefCell<T>>;
 
-impl<T> Address<u8> for Inner<T>
+impl<T, Idx, V> Address<Idx, V> for Inner<T>
 where
-    T: Address<u8> + ?Sized,
+    T: Address<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn read(&self, index: usize) -> u8 {
+    fn read(&self, index: Idx) -> V {
         self.borrow().read(index)
     }
 
-    fn write(&mut self, index: usize, value: u8) {
+    fn write(&mut self, index: Idx, value: V) {
         self.borrow_mut().write(index, value);
     }
 }
@@ -206,15 +209,17 @@ where
     }
 }
 
-impl<T> Board for Inner<T>
+impl<T, Idx, V> Board<Idx, V> for Inner<T>
 where
-    T: Board + ?Sized,
+    T: Board<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn connect(&self, bus: &mut Bus) {
+    fn connect(&self, bus: &mut Bus<Idx, V>) {
         self.borrow().connect(bus);
     }
 
-    fn disconnect(&self, bus: &mut Bus) {
+    fn disconnect(&self, bus: &mut Bus<Idx, V>) {
         self.borrow_mut().disconnect(bus);
     }
 }
@@ -222,7 +227,7 @@ where
 impl<T, V> Cell<V> for Inner<T>
 where
     T: Cell<V> + ?Sized,
-    V: Copy + Default,
+    V: Value,
 {
     fn load(&self) -> V {
         self.borrow().load()
@@ -233,17 +238,12 @@ where
     }
 }
 
-impl<T> Device for Inner<T>
+impl<T, Idx, V> Device<Idx, V> for Inner<T>
 where
-    T: Device + ?Sized,
+    T: Device<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
 {
-    fn contains(&self, index: usize) -> bool {
-        self.borrow().contains(index)
-    }
-
-    fn len(&self) -> usize {
-        self.borrow().len()
-    }
 }
 
 impl<T, B> Linked<B> for Inner<T>
@@ -263,7 +263,7 @@ where
 impl<T, V> Location<V> for Inner<T>
 where
     T: Location<V> + ?Sized,
-    V: Copy + Default,
+    V: Value,
 {
     type Register = T::Register;
 

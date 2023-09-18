@@ -1,5 +1,5 @@
 use super::Device;
-use crate::arch::Address;
+use crate::arch::{Address, Value};
 use crate::blk::Block;
 
 /// Null device.
@@ -14,46 +14,52 @@ use crate::blk::Block;
 /// be changed either by constructing with [`Null::with`], or through the
 /// [`Null::read_as`] method at runtime.
 #[derive(Debug, Default)]
-pub struct Null<const N: usize>(u8);
+pub struct Null<V, const N: usize>(V)
+where
+    V: Value;
 
-impl<const N: usize> Null<N> {
+impl<V, const N: usize> Null<V, N>
+where
+    V: Value,
+{
     /// Constructs a new `Null<N>`.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Construct an instance of [`Null`] that yields the specified byte when
+    /// Construct an instance of [`Null`] that yields the specified value when
     /// performing a read.
     #[must_use]
-    pub fn with(read_as: u8) -> Self {
-        Self(read_as)
+    pub fn with(value: V) -> Self {
+        Self(value)
     }
 
     /// Set the value to be used when performing a read.
-    pub fn read_as(&mut self, byte: u8) {
-        self.0 = byte;
+    pub fn read_as(&mut self, value: V) {
+        self.0 = value;
     }
 }
 
-impl<const N: usize> Address<u8> for Null<N> {
-    fn read(&self, _index: usize) -> u8 {
+impl<Idx, V, const N: usize> Address<Idx, V> for Null<V, N>
+where
+    Idx: Value,
+    V: Value,
+{
+    fn read(&self, _: Idx) -> V {
         self.0
     }
 
-    fn write(&mut self, _index: usize, _value: u8) {}
+    fn write(&mut self, _: Idx, _: V) {}
 }
 
-impl<const N: usize> Block for Null<N> {}
+impl<V, const N: usize> Block for Null<V, N> where V: Value {}
 
-impl<const N: usize> Device for Null<N> {
-    fn contains(&self, index: usize) -> bool {
-        (0..self.len()).contains(&index)
-    }
-
-    fn len(&self) -> usize {
-        N
-    }
+impl<Idx, V, const N: usize> Device<Idx, V> for Null<V, N>
+where
+    Idx: Value,
+    V: Value,
+{
 }
 
 #[allow(clippy::items_after_statements)]
@@ -63,71 +69,34 @@ mod tests {
 
     #[test]
     fn new_works() {
-        let null = Null::<0x100>::new();
+        let null = Null::<u8, 0x100>::new();
         assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
+            .map(|index| null.read(index))
             .all(|byte| byte == 0));
     }
 
     #[test]
     fn with_works() {
-        let null = Null::<0x100>::with(0xaa);
+        let null: Null<u8, 0x100> = Null::with(0xaa);
         assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
+            .map(|index| null.read(index))
             .all(|byte| byte == 0xaa));
     }
 
     #[test]
     fn address_read_works() {
-        let null = Null::<0x100>::with(0xaa);
+        let null: Null<u8, 0x100> = Null::with(0xaa);
         assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
+            .map(|index| null.read(index))
             .all(|byte| byte == null.0));
     }
 
     #[test]
     fn address_write_works() {
-        let mut null = Null::<0x100>::new();
-        (0x000..0x100).for_each(|addr| null.write(addr, 0xaa));
+        let mut null: Null<u8, 0x100> = Null::new();
+        (0x000..0x100).for_each(|index| null.write(index, 0xaa));
         assert!((0x000..0x100)
-            .map(|addr| null.read(addr))
+            .map(|index| null.read(index))
             .all(|byte| byte == 0));
-    }
-
-    #[test]
-    fn device_contains_works() {
-        const N0: usize = 0x0;
-        let null = Null::<N0>::new();
-        (0..N0).for_each(|addr| assert!(null.contains(addr)));
-
-        const N1: usize = 0x1;
-        let null = Null::<N1>::new();
-        (0..N1).for_each(|addr| assert!(null.contains(addr)));
-
-        const N2: usize = 0x10;
-        let null = Null::<N2>::new();
-        (0..N2).for_each(|addr| assert!(null.contains(addr)));
-
-        const N3: usize = 0x100;
-        let null = Null::<N3>::new();
-        (0..N3).for_each(|addr| assert!(null.contains(addr)));
-
-        const N4: usize = 0x1000;
-        let null = Null::<N4>::new();
-        (0..N4).for_each(|addr| assert!(null.contains(addr)));
-
-        const N5: usize = 0x10000;
-        let null = Null::<N5>::new();
-        (0..N5).for_each(|addr| assert!(null.contains(addr)));
-    }
-
-    #[test]
-    fn device_len_works() {
-        assert_eq!(Null::<0x0>::new().len(), 0);
-        assert_eq!(Null::<0x1>::new().len(), 0x1);
-        assert_eq!(Null::<0x10>::new().len(), 0x10);
-        assert_eq!(Null::<0x100>::new().len(), 0x100);
-        assert_eq!(Null::<0x1000>::new().len(), 0x1000);
-        assert_eq!(Null::<0x10000>::new().len(), 0x10000);
     }
 }

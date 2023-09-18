@@ -1,8 +1,9 @@
 use std::fmt::Debug;
-use std::ops::{Bound, RangeBounds};
+use std::marker::PhantomData;
 
-use crate::arch::Address;
+use crate::arch::{Address, Value};
 use crate::blk::Block;
+use crate::bus::Range;
 use crate::dev::Device;
 
 /// Partial address view.
@@ -15,41 +16,41 @@ use crate::dev::Device;
 /// In conjunction with [`Remap`](super::Remap), devices can be partially or
 /// completely mapped into another address space as desired.
 #[derive(Debug)]
-pub struct View<D, R>
+pub struct View<T, Idx, V>
 where
-    D: Device,
-    R: Debug + RangeBounds<usize>,
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
 {
-    dev: D,
-    range: R,
+    range: Range<Idx>,
+    dev: T,
+    phantom: PhantomData<(Idx, V)>,
 }
 
-impl<D, R> View<D, R>
+impl<T, Idx, V> View<T, Idx, V>
 where
-    D: Device,
-    R: Debug + RangeBounds<usize>,
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
 {
     /// Constructs a new `View`.
-    pub fn new(dev: D, range: R) -> Self {
-        Self { dev, range }
-    }
-
-    fn translate(&self, index: usize) -> usize {
-        index
-            + match self.range.start_bound() {
-                Bound::Included(&start) => start,
-                Bound::Excluded(&start) => start.saturating_add(1),
-                Bound::Unbounded => 0,
-            }
+    pub fn new(range: Range<Idx>, dev: T) -> Self {
+        Self {
+            dev,
+            range,
+            phantom: PhantomData,
+        }
     }
 }
-impl<D, R> Address<u8> for View<D, R>
+
+impl<T, Idx, V> Address<Idx, V> for View<T, Idx, V>
 where
-    D: Device,
-    R: Debug + RangeBounds<usize>,
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
 {
-    fn read(&self, index: usize) -> u8 {
-        let index = self.translate(index);
+    fn read(&self, index: Idx) -> V {
+        let index = index + *self.range.start();
         if self.range.contains(&index) {
             self.dev.read(index)
         } else {
@@ -57,8 +58,8 @@ where
         }
     }
 
-    fn write(&mut self, index: usize, value: u8) {
-        let index = self.translate(index);
+    fn write(&mut self, index: Idx, value: V) {
+        let index = index + *self.range.start();
         if self.range.contains(&index) {
             self.dev.write(index, value);
         } else {
@@ -67,102 +68,61 @@ where
     }
 }
 
-impl<D, R> Block for View<D, R>
+impl<T, Idx, V> Block for View<T, Idx, V>
 where
-    D: Device,
-    R: Debug + RangeBounds<usize>,
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
 {
     fn reset(&mut self) {
         self.dev.reset();
     }
 }
 
-impl<D, R> Device for View<D, R>
+impl<T, Idx, V> Device<Idx, V> for View<T, Idx, V>
 where
-    D: Device,
-    R: Debug + RangeBounds<usize>,
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
 {
-    fn contains(&self, index: usize) -> bool {
-        let index = self.translate(index);
-        self.range.contains(&index)
-    }
-
-    fn len(&self) -> usize {
-        let start = match self.range.start_bound() {
-            Bound::Included(&start) => start,
-            Bound::Excluded(&start) => start.saturating_add(1),
-            Bound::Unbounded => 0,
-        };
-        let end = match self.range.end_bound() {
-            Bound::Included(&end) => end.saturating_add(1),
-            Bound::Excluded(&end) => end,
-            Bound::Unbounded => usize::MAX,
-        };
-        end.saturating_sub(start)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dev::Dynamic;
     use crate::mem::Ram;
 
     #[test]
     fn new_works() {
-        let ram = Ram::<0x100>::new();
-        let _ = View::new(ram, 0x40..0xc0);
+        let ram = Ram::<u8, 0x100>::new();
+        let _: View<_, u8, _> = View::new(0x40..=0xbf, ram);
     }
 
     #[test]
     fn address_read_works() {
-        let ram = Ram::<0x100>::from(&[0xaa; 0x100]).to_dynamic();
-        let view = View::new(ram, 0x40..0xc0);
-        (0..0x80).for_each(|addr| {
-            assert_eq!(view.read(addr), 0xaa);
+        let ram: Dynamic<usize, u8> = Ram::from(&[0xaa; 0x100]).to_dynamic();
+        let view = View::new(0x40..=0xbf, ram);
+        (0..0x80).for_each(|index| {
+            assert_eq!(view.read(index), 0xaa);
         });
     }
 
     #[test]
     fn address_write_works() {
-        let ram = Ram::<0x100>::new().to_dynamic();
-        let mut view = View::new(ram.clone(), 0x40..0xc0);
-        (0x000..0x080).for_each(|addr| {
-            view.write(addr, 0xaa);
+        let ram: Dynamic<usize, u8> = Ram::<u8, 0x100>::new().to_dynamic();
+        let mut view = View::new(0x40..=0xbf, ram.clone());
+        (0x000..0x080).for_each(|index| {
+            view.write(index, 0xaa);
         });
-        (0x000..0x040).for_each(|addr| {
-            assert_eq!(ram.read(addr), 0x00);
+        (0x000..0x040).for_each(|index| {
+            assert_eq!(ram.read(index), 0x00);
         });
-        (0x040..0x0c0).for_each(|addr| {
-            assert_eq!(ram.read(addr), 0xaa);
+        (0x040..0x0c0).for_each(|index| {
+            assert_eq!(ram.read(index), 0xaa);
         });
-        (0x0c0..0x100).for_each(|addr| {
-            assert_eq!(ram.read(addr), 0x00);
+        (0x0c0..0x100).for_each(|index| {
+            assert_eq!(ram.read(index), 0x00);
         });
-    }
-
-    #[test]
-    fn device_contains_works() {
-        // Exclusive bound
-        let ram = Ram::<0x100>::new();
-        let view = View::new(ram, 0x40..0xc0);
-        (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
-        (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
-
-        // Inclusive bound
-        let ram = Ram::<0x100>::new();
-        let view = View::new(ram, 0x40..=0xbf);
-        (0x00..=0x7f).for_each(|addr| assert!(view.contains(addr)));
-        (0x80..=0xff).for_each(|addr| assert!(!view.contains(addr)));
-    }
-
-    #[test]
-    fn device_len_works() {
-        let ram = Ram::<0x10000>::new().to_shared();
-        assert_eq!(View::new(ram.clone(), 0..0x0).len(), 0x0);
-        assert_eq!(View::new(ram.clone(), 0..=0x0).len(), 0x1);
-        assert_eq!(View::new(ram.clone(), 0..0x10).len(), 0x10);
-        assert_eq!(View::new(ram.clone(), 0..=0xff).len(), 0x100);
-        assert_eq!(View::new(ram.clone(), 0..0x1000).len(), 0x1000);
-        assert_eq!(View::new(ram, 0..=0xffff).len(), 0x10000);
     }
 }

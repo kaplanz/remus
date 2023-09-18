@@ -1,4 +1,4 @@
-use crate::arch::Address;
+use crate::arch::{Address, Value};
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -8,9 +8,14 @@ use crate::dev::Device;
 ///
 /// Panics on [`Address::write`].
 #[derive(Debug)]
-pub struct Rom<const N: usize>(Box<[u8; N]>);
+pub struct Rom<V, const N: usize>(Box<[V; N]>)
+where
+    V: Value;
 
-impl<const N: usize> Rom<N> {
+impl<V, const N: usize> Rom<V, N>
+where
+    V: Value,
+{
     /// Constructs a new, empty `Rom<N>`.
     #[must_use]
     pub fn new() -> Self {
@@ -18,22 +23,30 @@ impl<const N: usize> Rom<N> {
     }
 }
 
-impl<const N: usize> Address<u8> for Rom<N> {
-    fn read(&self, index: usize) -> u8 {
-        self.0[index]
+impl<Idx, V, const N: usize> Address<Idx, V> for Rom<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
+    fn read(&self, index: Idx) -> V {
+        self.0[usize::from(index)]
     }
 
     /// # Panics
     ///
     /// Panics when attempting to write to a [`Rom`].
-    fn write(&mut self, _index: usize, _value: u8) {
+    fn write(&mut self, _: Idx, _value: V) {
         panic!("called `Address::write()` on a `Rom`");
     }
 }
 
-impl<const N: usize> Block for Rom<N> {}
+impl<V, const N: usize> Block for Rom<V, N> where V: Value {}
 
-impl<const N: usize> Default for Rom<N> {
+impl<V, const N: usize> Default for Rom<V, N>
+where
+    V: Value,
+{
     fn default() -> Self {
         Self(
             vec![Default::default(); N]
@@ -44,18 +57,19 @@ impl<const N: usize> Default for Rom<N> {
     }
 }
 
-impl<const N: usize> Device for Rom<N> {
-    fn contains(&self, index: usize) -> bool {
-        (0..self.len()).contains(&index)
-    }
-
-    fn len(&self) -> usize {
-        <[u8]>::len(&*self.0)
-    }
+impl<Idx, V, const N: usize> Device<Idx, V> for Rom<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
 }
 
-impl<const N: usize> From<&[u8; N]> for Rom<N> {
-    fn from(arr: &[u8; N]) -> Self {
+impl<V, const N: usize> From<&[V; N]> for Rom<V, N>
+where
+    V: Value,
+{
+    fn from(arr: &[V; N]) -> Self {
         Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
     }
 }
@@ -64,12 +78,10 @@ impl<const N: usize> From<&[u8; N]> for Rom<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arch::Address;
-    use crate::dev::Device;
 
     #[test]
     fn new_works() {
-        let rom = Rom::<0x100>::new();
+        let rom = Rom::<u8, 0x100>::new();
         assert!(rom.0.iter().all(|&byte| byte == 0));
     }
 
@@ -78,63 +90,25 @@ mod tests {
         const N: usize = 0x100;
 
         let arr = [0; N];
-        let rom = Rom::<N>::from(&arr);
+        let rom = Rom::from(&arr);
         assert_eq!(*rom.0, arr);
 
         let vec: Vec<u8> = (0..N).map(|x| x as u8).collect();
-        let buf = vec.try_into().unwrap();
-        let rom = Rom::<N>::from(&buf);
+        let buf: [u8; N] = vec.try_into().unwrap();
+        let rom = Rom::from(&buf);
         assert_eq!(*rom.0, buf);
     }
 
     #[test]
     fn address_read_works() {
-        let rom = Rom::<0x1>::from(&[0xaa]);
-        assert_eq!(rom.read(0x0), 0xaa);
+        let rom = Rom::from(&[0xaa]);
+        assert_eq!(rom.read(0x0usize), 0xaa);
     }
 
     #[test]
     #[should_panic]
     fn address_write_panics() {
-        let mut rom = Rom::<0x1>::from(&[0xaa]);
-        rom.write(0x0, 0xaa);
-    }
-
-    #[test]
-    #[allow(clippy::items_after_statements)]
-    fn device_contains_works() {
-        const N0: usize = 0x0;
-        let rom = Rom::<N0>::new();
-        (0..N0).for_each(|addr| assert!(rom.contains(addr)));
-
-        const N1: usize = 0x1;
-        let rom = Rom::<N1>::new();
-        (0..N1).for_each(|addr| assert!(rom.contains(addr)));
-
-        const N2: usize = 0x10;
-        let rom = Rom::<N2>::new();
-        (0..N2).for_each(|addr| assert!(rom.contains(addr)));
-
-        const N3: usize = 0x100;
-        let rom = Rom::<N3>::new();
-        (0..N3).for_each(|addr| assert!(rom.contains(addr)));
-
-        const N4: usize = 0x1000;
-        let rom = Rom::<N4>::new();
-        (0..N4).for_each(|addr| assert!(rom.contains(addr)));
-
-        const N5: usize = 0x10000;
-        let rom = Rom::<N5>::new();
-        (0..N5).for_each(|addr| assert!(rom.contains(addr)));
-    }
-
-    #[test]
-    fn device_len_works() {
-        assert_eq!(Rom::<0x0>::new().len(), 0x0);
-        assert_eq!(Rom::<0x1>::new().len(), 0x1);
-        assert_eq!(Rom::<0x10>::new().len(), 0x10);
-        assert_eq!(Rom::<0x100>::new().len(), 0x100);
-        assert_eq!(Rom::<0x1000>::new().len(), 0x1000);
-        assert_eq!(Rom::<0x10000>::new().len(), 0x10000);
+        let mut rom = Rom::from(&[0xaa]);
+        rom.write(0x0usize, 0xaa);
     }
 }

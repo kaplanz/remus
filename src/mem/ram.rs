@@ -1,12 +1,17 @@
-use crate::arch::Address;
+use crate::arch::{Address, Value};
 use crate::blk::Block;
 use crate::dev::Device;
 
 /// Random-access memory model.
 #[derive(Debug)]
-pub struct Ram<const N: usize>(Box<[u8; N]>);
+pub struct Ram<V, const N: usize>(Box<[V; N]>)
+where
+    V: Value;
 
-impl<const N: usize> Ram<N> {
+impl<V, const N: usize> Ram<V, N>
+where
+    V: Value,
+{
     /// Constructs a new, empty `Ram<N>`.
     #[must_use]
     pub fn new() -> Self {
@@ -14,23 +19,34 @@ impl<const N: usize> Ram<N> {
     }
 }
 
-impl<const N: usize> Address<u8> for Ram<N> {
-    fn read(&self, index: usize) -> u8 {
-        self.0[index]
+impl<Idx, V, const N: usize> Address<Idx, V> for Ram<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
+    fn read(&self, index: Idx) -> V {
+        self.0[usize::from(index)]
     }
 
-    fn write(&mut self, index: usize, value: u8) {
-        self.0[index] = value;
+    fn write(&mut self, index: Idx, value: V) {
+        self.0[usize::from(index)] = value;
     }
 }
 
-impl<const N: usize> Block for Ram<N> {
+impl<V, const N: usize> Block for Ram<V, N>
+where
+    V: Value,
+{
     fn reset(&mut self) {
         std::mem::take(self);
     }
 }
 
-impl<const N: usize> Default for Ram<N> {
+impl<V, const N: usize> Default for Ram<V, N>
+where
+    V: Value,
+{
     fn default() -> Self {
         Self(
             vec![Default::default(); N]
@@ -41,18 +57,19 @@ impl<const N: usize> Default for Ram<N> {
     }
 }
 
-impl<const N: usize> Device for Ram<N> {
-    fn contains(&self, index: usize) -> bool {
-        (0..self.len()).contains(&index)
-    }
-
-    fn len(&self) -> usize {
-        <[u8]>::len(&*self.0)
-    }
+impl<Idx, V, const N: usize> Device<Idx, V> for Ram<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
 }
 
-impl<const N: usize> From<&[u8; N]> for Ram<N> {
-    fn from(arr: &[u8; N]) -> Self {
+impl<V, const N: usize> From<&[V; N]> for Ram<V, N>
+where
+    V: Value,
+{
+    fn from(arr: &[V; N]) -> Self {
         Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
     }
 }
@@ -62,12 +79,10 @@ impl<const N: usize> From<&[u8; N]> for Ram<N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arch::Address;
-    use crate::dev::Device;
 
     #[test]
     fn new_works() {
-        let ram = Ram::<0x100>::new();
+        let ram = Ram::<u8, 0x100>::new();
         assert!(ram.0.iter().all(|&byte| byte == 0));
     }
 
@@ -76,47 +91,20 @@ mod tests {
         const N: usize = 0x100;
 
         let arr = [0; N];
-        let ram = Ram::<N>::from(&arr);
+        let ram = Ram::from(&arr);
         assert_eq!(*ram.0, arr);
 
         let vec: Vec<u8> = (0..N).map(|x| x as u8).collect();
-        let buf = vec.try_into().unwrap();
-        let ram = Ram::<N>::from(&buf);
+        let buf: [u8; N] = vec.try_into().unwrap();
+        let ram = Ram::from(&buf);
         assert_eq!(*ram.0, buf);
     }
 
     #[test]
     fn address_read_write_works() {
-        let mut ram = Ram::<0x1>::new();
-        assert_eq!(ram.read(0x0), 0x00);
-        ram.write(0x0, 0xaa);
-        assert_eq!(ram.read(0x0), 0xaa);
-    }
-
-    #[test]
-    fn device_contains_works() {
-        const N0: usize = 0x0;
-        let ram = Ram::<N0>::new();
-        (0..N0).for_each(|addr| assert!(ram.contains(addr)));
-
-        const N1: usize = 0x1;
-        let ram = Ram::<N1>::new();
-        (0..N1).for_each(|addr| assert!(ram.contains(addr)));
-
-        const N2: usize = 0x10;
-        let ram = Ram::<N2>::new();
-        (0..N2).for_each(|addr| assert!(ram.contains(addr)));
-
-        const N3: usize = 0x100;
-        let ram = Ram::<N3>::new();
-        (0..N3).for_each(|addr| assert!(ram.contains(addr)));
-
-        const N4: usize = 0x1000;
-        let ram = Ram::<N4>::new();
-        (0..N4).for_each(|addr| assert!(ram.contains(addr)));
-
-        const N5: usize = 0x10000;
-        let ram = Ram::<N5>::new();
-        (0..N5).for_each(|addr| assert!(ram.contains(addr)));
+        let mut ram: Ram<u8, 0x100> = Ram::new();
+        assert_eq!(ram.read(0x0usize), 0x00);
+        ram.write(0x0usize, 0xaa);
+        assert_eq!(ram.read(0x0usize), 0xaa);
     }
 }

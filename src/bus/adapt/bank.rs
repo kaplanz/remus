@@ -1,4 +1,4 @@
-use crate::arch::Address;
+use crate::arch::{Address, Value};
 use crate::blk::Block;
 use crate::dev::{Device, Dynamic};
 
@@ -11,12 +11,20 @@ use crate::dev::{Device, Dynamic};
 ///
 /// As it is simply a wrapper, its fields are public can be accessed directly.
 #[derive(Debug, Default)]
-pub struct Bank {
+pub struct Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
     sel: usize,
-    banks: Vec<Dynamic>,
+    banks: Vec<Dynamic<Idx, V>>,
 }
 
-impl Bank {
+impl<Idx, V> Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
     /// Constructs a new, empty `Bank`.
     #[must_use]
     pub fn new() -> Self {
@@ -35,7 +43,7 @@ impl Bank {
     }
 
     /// Appends a device to the back of a bank.
-    pub fn add(&mut self, dev: Dynamic) {
+    pub fn add(&mut self, dev: Dynamic<Idx, V>) {
         self.banks.push(dev);
     }
 
@@ -46,28 +54,36 @@ impl Bank {
 
     /// Inserts an device at position `index` within the bank, shifting all
     /// devices after it to the right.
-    pub fn insert(&mut self, index: usize, dev: Dynamic) {
+    pub fn insert(&mut self, index: usize, dev: Dynamic<Idx, V>) {
         self.banks.insert(index, dev);
     }
 
     /// Removes and returns the device at position `index` within the bank,
     /// shifting all devices after it to the left.
-    pub fn remove(&mut self, index: usize) -> Dynamic {
+    pub fn remove(&mut self, index: usize) -> Dynamic<Idx, V> {
         self.banks.remove(index)
     }
 }
 
-impl Address<u8> for Bank {
-    fn read(&self, index: usize) -> u8 {
+impl<Idx, V> Address<Idx, V> for Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
+    fn read(&self, index: Idx) -> V {
         self.banks[self.sel].read(index)
     }
 
-    fn write(&mut self, index: usize, value: u8) {
+    fn write(&mut self, index: Idx, value: V) {
         self.banks[self.sel].write(index, value);
     }
 }
 
-impl Block for Bank {
+impl<Idx, V> Block for Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
     fn reset(&mut self) {
         self.sel = 0;
         for bank in &mut self.banks {
@@ -76,24 +92,19 @@ impl Block for Bank {
     }
 }
 
-impl Device for Bank {
-    fn contains(&self, index: usize) -> bool {
-        self.banks
-            .get(self.sel)
-            .map(|bank| bank.contains(index))
-            .unwrap_or_default()
-    }
-
-    fn len(&self) -> usize {
-        self.banks
-            .get(self.sel)
-            .map(Device::len)
-            .unwrap_or_default()
-    }
+impl<Idx, V> Device<Idx, V> for Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
 }
 
-impl From<&[Dynamic]> for Bank {
-    fn from(banks: &[Dynamic]) -> Self {
+impl<Idx, V> From<&[Dynamic<Idx, V>]> for Bank<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
+    fn from(banks: &[Dynamic<Idx, V>]) -> Self {
         Self {
             banks: Vec::from(banks),
             ..Default::default()
@@ -107,18 +118,18 @@ mod tests {
     use crate::dev::{Null, Random};
     use crate::mem::Ram;
 
-    fn setup() -> Bank {
+    fn setup() -> Bank<usize, u8> {
         let mut bank = Bank::new();
-        let ram = Ram::<0x100>::from(&[0x55; 0x100]).to_dynamic();
-        let null = Null::<0>::new().to_dynamic();
-        let random = Random::<0x100>::new().to_dynamic();
+        let ram = Ram::from(&[0x55; 0x100]).to_dynamic();
+        let null = Null::<u8, 0>::new().to_dynamic();
+        let random = Random::<u8, 0x100>::new().to_dynamic();
         bank.banks.extend([ram, null, random]);
         bank
     }
 
     #[test]
     fn new_works() {
-        let _ = Bank::new();
+        let _ = Bank::<usize, u8>::new();
     }
 
     #[test]
@@ -126,11 +137,11 @@ mod tests {
         let mut bank = setup();
         // Test bank 0
         bank.sel = 0;
-        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0x55));
+        (0x00..=0xff).for_each(|index| assert_eq!(bank.read(index), 0x55));
         // Test bank 2
         bank.sel = 2;
-        (0x00..=0xff).for_each(|addr| {
-            let _ = bank.read(addr);
+        (0x00..=0xff).for_each(|index| {
+            let _ = bank.read(index);
         });
     }
 
@@ -139,46 +150,18 @@ mod tests {
         let mut bank = setup();
         // Test bank 0
         bank.sel = 0;
-        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
-        (0x00..=0xff).for_each(|addr| assert_eq!(bank.read(addr), 0xaa));
+        (0x00..=0xff).for_each(|index| bank.write(index, 0xaa));
+        (0x00..=0xff).for_each(|index| assert_eq!(bank.read(index), 0xaa));
         // Test bank 2
         bank.sel = 2;
-        (0x00..=0xff).for_each(|addr| bank.write(addr, 0xaa));
+        (0x00..=0xff).for_each(|index| bank.write(index, 0xaa));
         // NOTE: For all intents and purposes, this should never fail. If it
         //       does, one of two things happened:
         //       1. You broke something either in Bank or Random
         //       2. You broke this test
         //       3. You broke probability, all hope is lost
         assert!((0x00..=0xff)
-            .map(|addr| bank.read(addr))
+            .map(|index| bank.read(index))
             .any(|value| value != 0xaa));
-    }
-
-    #[test]
-    fn device_contains_works() {
-        let mut bank = setup();
-        // Test bank 0
-        bank.sel = 0;
-        (0x00..=0xff).for_each(|addr| assert!(bank.contains(addr)));
-        // Test bank 1
-        bank.sel = 1;
-        (0x00..=0xff).for_each(|addr| assert!(!bank.contains(addr)));
-        // Test bank 0
-        bank.sel = 2;
-        (0x00..=0xff).for_each(|addr| assert!(bank.contains(addr)));
-    }
-
-    #[test]
-    fn device_len_works() {
-        let mut bank = setup();
-        // Test bank 0
-        bank.sel = 0;
-        assert_eq!(bank.len(), 0x100);
-        // Test bank 1
-        bank.sel = 1;
-        assert_eq!(bank.len(), 0);
-        // Test bank 0
-        bank.sel = 2;
-        assert_eq!(bank.len(), 0x100);
     }
 }

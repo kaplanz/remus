@@ -1,19 +1,41 @@
+pub use value::Value;
+
+mod value {
+    use std::fmt::Debug;
+    use std::ops::{Add, Sub};
+
+    /// Architecture supported integer data types.
+    pub trait Value:
+        Add<Output = Self> + Copy + Debug + Default + Eq + Ord + Sub<Output = Self>
+    {
+    }
+
+    macro_rules! add_impl {
+        ($($t:ty)*) => ($(
+            impl Value for $t {}
+        )*)
+    }
+
+    add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 }
+}
+
 /// Addressable read-write interface.
-pub trait Address<V>
+pub trait Address<Idx, V>
 where
-    V: Copy + Default,
+    Idx: Value,
+    V: Value,
 {
     /// Reads from the specified address.
-    fn read(&self, index: usize) -> V;
+    fn read(&self, index: Idx) -> V;
 
     /// Writes to the specified address.
-    fn write(&mut self, index: usize, value: V);
+    fn write(&mut self, index: Idx, value: V);
 }
 
 /// Register load-store interface.
 pub trait Cell<V>
 where
-    V: Copy + Default,
+    V: Value,
 {
     /// Loads the register's value.
     fn load(&self) -> V;
@@ -25,7 +47,7 @@ where
 /// Processor load-store interface.
 pub trait Location<V>
 where
-    V: Copy + Default,
+    V: Value,
 {
     /// Accessor for specifying registers.
     ///
