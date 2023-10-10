@@ -1,4 +1,4 @@
-use crate::arch::{Address, Value};
+use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -36,8 +36,23 @@ where
     /// # Panics
     ///
     /// Panics when attempting to write to a [`Rom`].
-    fn write(&mut self, _: Idx, _value: V) {
-        panic!("called `Address::write()` on a `Rom`");
+    fn write(&mut self, _: Idx, _: V) {
+        panic!("`<Rom as Address>::write`: unsupported operation");
+    }
+}
+
+impl<Idx, V, const N: usize> TryAddress<Idx, V> for Rom<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
+    fn try_read(&self, index: Idx) -> Option<V> {
+        self.0.get(usize::from(index)).copied()
+    }
+
+    fn try_write(&mut self, _: Idx, _: V) -> Option<()> {
+        None
     }
 }
 

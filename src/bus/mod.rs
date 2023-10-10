@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use std::ops::{Index, RangeInclusive};
 
 use self::map::Bus as BusMap;
-use crate::arch::{Address, Value};
+use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::dev::{Device, Dynamic};
 
@@ -62,10 +62,10 @@ where
     ///
     /// Returns `None` if no matching device was found (and unmapped).
     pub fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
-        // self.maps.unmap(dev)
-        todo!("{dev:?}")
+        self.maps.unmap(dev)
     }
 
+    /// Gets the matching device in the bus.
     pub fn get(&self, index: Idx) -> Option<&Dynamic<Idx, V>> {
         self.maps.get(index).map(|map| &map.entry)
     }
@@ -77,13 +77,30 @@ where
     V: Value,
 {
     fn read(&self, index: Idx) -> V {
-        let map = self.maps.get(index).unwrap();
-        map.entry.read(index - map.base())
+        self.try_read(index)
+            .expect("`<Bus as Address>::read()`: index is not mapped: {index}")
     }
 
     fn write(&mut self, index: Idx, value: V) {
-        let map = self.maps.get(index).unwrap();
+        self.try_write(index, value)
+            .expect("`<Bus as Address>::write()`: index is not mapped: {index}");
+    }
+}
+
+impl<Idx, V> TryAddress<Idx, V> for Bus<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
+    fn try_read(&self, index: Idx) -> Option<V> {
+        let map = self.maps.get(index)?;
+        Some(map.entry.read(index - map.base()))
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+        let map = self.maps.get(index)?;
         map.entry.borrow_mut().write(index - map.base(), value);
+        Some(())
     }
 }
 
@@ -175,13 +192,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn unmap_works() {
         let mut bus = Bus::new();
         let dev: Dynamic<usize, u8> = Ram::from(&[0; 0x100]).to_dynamic();
         bus.map(0x000..=0x0ff, dev.clone());
         assert_eq!(bus.unmap(&dev), Some(dev));
-        bus.read(0x000);
+        assert_eq!(bus.get(0x000), None);
     }
 
     #[test]

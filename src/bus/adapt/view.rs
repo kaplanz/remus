@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use crate::arch::{Address, Value};
+use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::bus::Range;
 use crate::dev::Device;
@@ -24,7 +24,7 @@ where
 {
     range: Range<Idx>,
     dev: T,
-    phantom: PhantomData<(Idx, V)>,
+    phantom: PhantomData<V>,
 }
 
 impl<T, Idx, V> View<T, Idx, V>
@@ -50,21 +50,32 @@ where
     V: Value,
 {
     fn read(&self, index: Idx) -> V {
-        let index = index + *self.range.start();
-        if self.range.contains(&index) {
-            self.dev.read(index)
-        } else {
-            panic!("`<View as Device>::read()`: index out of bounds");
-        }
+        self.try_read(index)
+            .expect("`<View as Address>::read`: index out of bounds: {index}")
     }
 
     fn write(&mut self, index: Idx, value: V) {
+        self.try_write(index, value)
+            .expect("`<View as Address>::write`: index out of bounds: {index}");
+    }
+}
+
+impl<T, Idx, V> TryAddress<Idx, V> for View<T, Idx, V>
+where
+    T: Device<Idx, V>,
+    Idx: Value,
+    V: Value,
+{
+    fn try_read(&self, index: Idx) -> Option<V> {
         let index = index + *self.range.start();
-        if self.range.contains(&index) {
-            self.dev.write(index, value);
-        } else {
-            panic!("`<View as Device>::write()`: index out of bounds");
-        }
+        self.range.contains(&index).then(|| self.dev.read(index))
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+        let index = index + *self.range.start();
+        self.range
+            .contains(&index)
+            .then(|| self.dev.write(index, value))
     }
 }
 
@@ -103,8 +114,11 @@ mod tests {
     fn address_read_works() {
         let ram: Dynamic<usize, u8> = Ram::from(&[0xaa; 0x100]).to_dynamic();
         let view = View::new(0x40..=0xbf, ram);
-        (0..0x80).for_each(|index| {
+        (0x00..=0x7f).for_each(|index| {
             assert_eq!(view.read(index), 0xaa);
+        });
+        (0x80..=0xff).for_each(|index| {
+            assert_eq!(view.try_read(index), None);
         });
     }
 
@@ -112,16 +126,19 @@ mod tests {
     fn address_write_works() {
         let ram: Dynamic<usize, u8> = Ram::<u8, 0x100>::new().to_dynamic();
         let mut view = View::new(0x40..=0xbf, ram.clone());
-        (0x000..0x080).for_each(|index| {
+        (0x00..=0x7f).for_each(|index| {
             view.write(index, 0xaa);
         });
-        (0x000..0x040).for_each(|index| {
+        (0x80..=0xff).for_each(|index| {
+            assert_eq!(view.try_write(index, 0xaa), None);
+        });
+        (0x00..=0x3f).for_each(|index| {
             assert_eq!(ram.read(index), 0x00);
         });
-        (0x040..0x0c0).for_each(|index| {
+        (0x40..=0xbf).for_each(|index| {
             assert_eq!(ram.read(index), 0xaa);
         });
-        (0x0c0..0x100).for_each(|index| {
+        (0xc0..=0xff).for_each(|index| {
             assert_eq!(ram.read(index), 0x00);
         });
     }

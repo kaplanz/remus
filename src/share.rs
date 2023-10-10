@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<T, Idx: Value, V: Value> Address<Idx, V> for Shared<T>
+impl<T, Idx, V> Address<Idx, V> for Shared<T>
 where
     T: Address<Idx, V> + ?Sized,
     Idx: Value,

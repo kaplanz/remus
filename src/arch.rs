@@ -32,6 +32,24 @@ where
     fn write(&mut self, index: Idx, value: V);
 }
 
+/// Addressable read-write interface.
+pub trait TryAddress<Idx, V>: Address<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
+    /// Fallibly reads from the specified address.
+    fn try_read(&self, index: Idx) -> Option<V> {
+        Some(self.read(index))
+    }
+
+    /// Fallibly writes to the specified address.
+    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+        self.write(index, value);
+        Some(())
+    }
+}
+
 /// Register load-store interface.
 pub trait Cell<V>
 where

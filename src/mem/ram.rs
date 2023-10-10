@@ -1,4 +1,4 @@
-use crate::arch::{Address, Value};
+use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::dev::Device;
 
@@ -26,11 +26,28 @@ where
     usize: From<Idx>,
 {
     fn read(&self, index: Idx) -> V {
-        self.0[usize::from(index)]
+        self.try_read(index)
+            .expect("`<Ram as Address>::read()`: index out of bounds: {index}")
     }
 
     fn write(&mut self, index: Idx, value: V) {
-        self.0[usize::from(index)] = value;
+        self.try_write(index, value)
+            .expect("`<Ram as Address>::write()`: index out of bounds: {index}");
+    }
+}
+
+impl<Idx, V, const N: usize> TryAddress<Idx, V> for Ram<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
+    fn try_read(&self, index: Idx) -> Option<V> {
+        self.0.get(usize::from(index)).copied()
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+        self.0.get_mut(usize::from(index)).map(|v| *v = value)
     }
 }
 

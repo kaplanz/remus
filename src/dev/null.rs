@@ -1,5 +1,5 @@
 use super::Device;
-use crate::arch::{Address, Value};
+use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 
 /// Null device.
@@ -14,7 +14,7 @@ use crate::blk::Block;
 /// be changed either by constructing with [`Null::with`], or through the
 /// [`Null::read_as`] method at runtime.
 #[derive(Debug, Default)]
-pub struct Null<V, const N: usize>(V)
+pub struct Null<V, const N: usize = 0>(V)
 where
     V: Value;
 
@@ -51,6 +51,27 @@ where
     }
 
     fn write(&mut self, _: Idx, _: V) {}
+}
+
+impl<Idx, V, const N: usize> TryAddress<Idx, V> for Null<V, N>
+where
+    Idx: Value,
+    V: Value,
+    usize: From<Idx>,
+{
+    fn try_read(&self, index: Idx) -> Option<V> {
+        match N {
+            len @ 0 | len if len > usize::from(index) => Some(self.0),
+            _ => None,
+        }
+    }
+
+    fn try_write(&mut self, index: Idx, _: V) -> Option<()> {
+        match N {
+            len @ 0 | len if len > usize::from(index) => Some(()),
+            _ => None,
+        }
+    }
 }
 
 impl<V, const N: usize> Block for Null<V, N> where V: Value {}

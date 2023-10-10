@@ -32,8 +32,17 @@ where
     }
 
     pub(super) fn map(&mut self, range: Range<Idx>, entry: V) {
-        let map = Mapping::new(range, entry);
-        self.0.entry(map.base()).or_default().insert(map.clone());
+        let new = Mapping::new(range, entry);
+        self.0.entry(new.base()).or_default().insert(new);
+    }
+
+    pub(super) fn unmap(&mut self, entry: &V) -> Option<V> {
+        // TODO: Implement using `extract_if` to bypass extraneous `clone`
+        let found = self.find(entry)?.clone();
+        self.0
+            .get_mut(&found.base())?
+            .take(&found)
+            .map(|it| it.entry)
     }
 
     pub(super) fn get(&self, idx: Idx) -> Option<&Mapping<Idx, V>> {
@@ -41,7 +50,14 @@ where
             .range(..=idx)
             .rev()
             .flat_map(|(_, maps)| maps.iter())
-            .find(|map| map.contains(&idx))
+            .find(|it| it.contains(&idx))
+    }
+
+    pub(super) fn find(&self, entry: &V) -> Option<&Mapping<Idx, V>> {
+        self.0
+            .iter()
+            .flat_map(|(_, maps)| maps.iter())
+            .find(|it| &it.entry == entry)
     }
 
     #[allow(unused)]

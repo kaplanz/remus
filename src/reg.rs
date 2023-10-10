@@ -45,11 +45,11 @@ where
     V: Value,
 {
     fn read(&self, _: Idx) -> V {
-        self.0
+        self.load()
     }
 
     fn write(&mut self, _: Idx, value: V) {
-        self.0 = value;
+        self.store(value);
     }
 }
 

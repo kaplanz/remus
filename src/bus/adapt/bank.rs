@@ -121,7 +121,7 @@ mod tests {
     fn setup() -> Bank<usize, u8> {
         let mut bank = Bank::new();
         let ram = Ram::from(&[0x55; 0x100]).to_dynamic();
-        let null = Null::<u8, 0>::new().to_dynamic();
+        let null = Null::<u8>::new().to_dynamic();
         let random = Random::<u8, 0x100>::new().to_dynamic();
         bank.banks.extend([ram, null, random]);
         bank

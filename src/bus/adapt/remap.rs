@@ -25,7 +25,7 @@ where
 {
     off: Idx,
     dev: T,
-    phantom: PhantomData<(Idx, V)>,
+    phantom: PhantomData<V>,
 }
 
 impl<T, Idx, V> Remap<T, Idx, V>
