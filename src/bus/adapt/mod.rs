@@ -13,9 +13,11 @@
 //! [`Dynamic`](crate::dev::Dynamic), allowing reuse elsewhere.
 
 pub use self::bank::Bank;
+pub use self::mask::{Layer, Mask};
 pub use self::remap::Remap;
 pub use self::view::View;
 
 mod bank;
+mod mask;
 mod remap;
 mod view;
