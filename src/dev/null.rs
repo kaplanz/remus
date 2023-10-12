@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use super::Device;
 use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
@@ -59,17 +61,19 @@ where
     V: Value,
     usize: From<Idx>,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
         match N {
-            len @ 0 | len if len > usize::from(index) => Some(self.0),
-            _ => None,
+            len @ 0 | len if len > usize::from(index) => Ok(self.0),
+            _ => Err(Error::Bounds(index)),
         }
     }
 
-    fn try_write(&mut self, index: Idx, _: V) -> Option<()> {
+    fn try_write(&mut self, index: Idx, _: V) -> Result<(), Self::Error> {
         match N {
-            len @ 0 | len if len > usize::from(index) => Some(()),
-            _ => None,
+            len @ 0 | len if len > usize::from(index) => Ok(()),
+            _ => Err(Error::Bounds(index)),
         }
     }
 }
@@ -81,6 +85,13 @@ where
     Idx: Value,
     V: Value,
 {
+}
+
+/// A type specifying general categories of [`Null`] error.
+#[derive(Debug, Error)]
+pub enum Error<Idx: Value> {
+    #[error("index out of bounds: {0:?}")]
+    Bounds(Idx),
 }
 
 #[allow(clippy::items_after_statements)]

@@ -1,3 +1,5 @@
+use std::error::Error;
+
 pub use value::Value;
 
 mod value {
@@ -38,15 +40,17 @@ where
     Idx: Value,
     V: Value,
 {
+    type Error: Error;
+
     /// Fallibly reads from the specified address.
-    fn try_read(&self, index: Idx) -> Option<V> {
-        Some(self.read(index))
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        Ok(self.read(index))
     }
 
     /// Fallibly writes to the specified address.
-    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
         self.write(index, value);
-        Some(())
+        Ok(())
     }
 }
 

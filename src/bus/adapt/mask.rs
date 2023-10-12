@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::arch::{TryAddress, Value};
 use crate::blk::Block;
-use crate::bus::Bus;
+use crate::bus::{self, Bus};
 use crate::dev::Device;
 use crate::Address;
 
@@ -35,13 +35,11 @@ where
     V: Value,
 {
     fn read(&self, index: Idx) -> V {
-        self.try_read(index)
-            .expect("`<Mask as Address>::read()`: index is not mapped: {index}")
+        self.try_read(index).unwrap()
     }
 
     fn write(&mut self, index: Idx, value: V) {
-        self.try_write(index, value)
-            .expect("`<Mask as Address>::write()`: index is not mapped: {index}");
+        self.try_write(index, value).unwrap();
     }
 }
 
@@ -50,18 +48,22 @@ where
     Idx: Value,
     V: Value,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
         self.0
             .iter()
             .filter(|layer| !layer.skip)
-            .find_map(|layer| layer.bus.try_read(index))
+            .find_map(|layer| layer.bus.try_read(index).ok())
+            .ok_or(Error::Unmapped(index))
     }
 
-    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
         self.0
             .iter_mut()
             .filter(|layer| !layer.skip)
-            .find_map(|layer| layer.bus.try_write(index, value))
+            .find_map(|layer| layer.bus.try_write(index, value).ok())
+            .ok_or(Error::Unmapped(index))
     }
 }
 
@@ -121,3 +123,6 @@ where
         Self { bus, skip: false }
     }
 }
+
+/// A type specifying general categories of [`Mask`] error.
+pub type Error<Idx> = bus::Error<Idx>;

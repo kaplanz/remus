@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
+use thiserror::Error;
+
 use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::bus::Range;
@@ -66,16 +68,22 @@ where
     Idx: Value,
     V: Value,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
-        let index = index + *self.range.start();
-        self.range.contains(&index).then(|| self.dev.read(index))
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        let offset = index + *self.range.start();
+        self.range
+            .contains(&offset)
+            .then(|| self.dev.read(offset))
+            .ok_or(Error::Bounds(index))
     }
 
-    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
-        let index = index + *self.range.start();
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
+        let offset = index + *self.range.start();
         self.range
-            .contains(&index)
-            .then(|| self.dev.write(index, value))
+            .contains(&offset)
+            .then(|| self.dev.write(offset, value))
+            .ok_or(Error::Bounds(index))
     }
 }
 
@@ -98,6 +106,13 @@ where
 {
 }
 
+/// A type specifying general categories of [`View`] error.
+#[derive(Debug, Error, PartialEq)]
+pub enum Error<Idx: Value> {
+    #[error("index out of bounds: {0:?}")]
+    Bounds(Idx),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,7 +133,7 @@ mod tests {
             assert_eq!(view.read(index), 0xaa);
         });
         (0x80..=0xff).for_each(|index| {
-            assert_eq!(view.try_read(index), None);
+            assert_eq!(view.try_read(index), Err(Error::Bounds(index)));
         });
     }
 
@@ -130,7 +145,7 @@ mod tests {
             view.write(index, 0xaa);
         });
         (0x80..=0xff).for_each(|index| {
-            assert_eq!(view.try_write(index, 0xaa), None);
+            assert_eq!(view.try_write(index, 0xaa), Err(Error::Bounds(index)));
         });
         (0x00..=0x3f).for_each(|index| {
             assert_eq!(ram.read(index), 0x00);

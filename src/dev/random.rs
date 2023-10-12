@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use rand::distributions::Standard;
 use rand::prelude::Distribution;
+use thiserror::Error;
 
 use super::Device;
 use crate::arch::{Address, TryAddress, Value};
@@ -52,17 +53,19 @@ where
     usize: From<Idx>,
     Standard: Distribution<V>,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
         match N {
-            len @ 0 | len if len > usize::from(index) => Some(rand::random()),
-            _ => None,
+            len @ 0 | len if len > usize::from(index) => Ok(rand::random()),
+            _ => Err(Error::Bounds(index)),
         }
     }
 
-    fn try_write(&mut self, index: Idx, _: V) -> Option<()> {
+    fn try_write(&mut self, index: Idx, _: V) -> Result<(), Self::Error> {
         match N {
-            len @ 0 | len if len > usize::from(index) => Some(()),
-            _ => None,
+            len @ 0 | len if len > usize::from(index) => Ok(()),
+            _ => Err(Error::Bounds(index)),
         }
     }
 }
@@ -80,6 +83,13 @@ where
     V: Value,
     Standard: Distribution<V>,
 {
+}
+
+/// A type specifying general categories of [`Random`] error.
+#[derive(Debug, Error)]
+pub enum Error<Idx: Value> {
+    #[error("index out of bounds: {0:?}")]
+    Bounds(Idx),
 }
 
 #[allow(clippy::items_after_statements)]

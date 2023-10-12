@@ -14,6 +14,8 @@
 use std::fmt::Debug;
 use std::ops::{Index, RangeInclusive};
 
+use thiserror::Error;
+
 use self::map::Bus as BusMap;
 use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
@@ -77,13 +79,11 @@ where
     V: Value,
 {
     fn read(&self, index: Idx) -> V {
-        self.try_read(index)
-            .expect("`<Bus as Address>::read()`: index is not mapped: {index}")
+        self.try_read(index).unwrap()
     }
 
     fn write(&mut self, index: Idx, value: V) {
-        self.try_write(index, value)
-            .expect("`<Bus as Address>::write()`: index is not mapped: {index}");
+        self.try_write(index, value).unwrap();
     }
 }
 
@@ -92,15 +92,20 @@ where
     Idx: Value,
     V: Value,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
-        let map = self.maps.get(index)?;
-        Some(map.entry.read(index - map.base()))
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        self.maps
+            .get(index)
+            .ok_or(Error::Unmapped(index))
+            .map(|it| it.entry.read(index - it.base()))
     }
 
-    fn try_write(&mut self, index: Idx, value: V) -> Option<()> {
-        let map = self.maps.get(index)?;
-        map.entry.borrow_mut().write(index - map.base(), value);
-        Some(())
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
+        self.maps
+            .get(index)
+            .ok_or(Error::Unmapped(index))
+            .map(|it| it.entry.borrow_mut().write(index - it.base(), value))
     }
 }
 
@@ -142,6 +147,13 @@ where
         }
         this
     }
+}
+
+/// A type specifying general categories of [`Bus`] error.
+#[derive(Debug, Error)]
+pub enum Error<Idx: Value> {
+    #[error("index is not mapped: {0:?}")]
+    Unmapped(Idx),
 }
 
 #[allow(clippy::items_after_statements)]

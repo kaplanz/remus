@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::dev::Device;
@@ -30,14 +32,15 @@ where
     usize: From<Idx>,
 {
     fn read(&self, index: Idx) -> V {
-        self.0[usize::from(index)]
+        self.try_read(index).unwrap()
     }
 
     /// # Panics
     ///
     /// Panics when attempting to write to a [`Rom`].
-    fn write(&mut self, _: Idx, _: V) {
-        panic!("`<Rom as Address>::write`: unsupported operation");
+    fn write(&mut self, index: Idx, value: V) {
+        let err = self.try_write(index, value).unwrap_err();
+        panic!("`<Rom as Address>::write`: {err}");
     }
 }
 
@@ -47,12 +50,20 @@ where
     V: Value,
     usize: From<Idx>,
 {
-    fn try_read(&self, index: Idx) -> Option<V> {
-        self.0.get(usize::from(index)).copied()
+    type Error = Error<Idx>;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        self.0
+            .get(usize::from(index))
+            .copied()
+            .ok_or(Error::Bounds(index))
     }
 
-    fn try_write(&mut self, _: Idx, _: V) -> Option<()> {
-        None
+    fn try_write(&mut self, index: Idx, _: V) -> Result<(), Self::Error> {
+        match self.0.get(usize::from(index)) {
+            Some(_) => Err(Error::Write),
+            None => Err(Error::Bounds(index)),
+        }
     }
 }
 
@@ -87,6 +98,15 @@ where
     fn from(arr: &[V; N]) -> Self {
         Self(Vec::from(&arr[..]).into_boxed_slice().try_into().unwrap())
     }
+}
+
+/// A type specifying general categories of [`Rom`] error.
+#[derive(Debug, Error)]
+pub enum Error<Idx: Value> {
+    #[error("index out of bounds: {0:?}")]
+    Bounds(Idx),
+    #[error("unsupported operation: write")]
+    Write,
 }
 
 #[allow(clippy::cast_possible_truncation)]
