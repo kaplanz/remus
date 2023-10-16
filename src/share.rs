@@ -1,10 +1,10 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crate::arch::{Address, Cell, Location, Value};
+use crate::arch::{Address, Cell, Location, TryAddress, Value};
 use crate::blk::{Block, Linked};
-use crate::bus::Bus;
-use crate::dev::Device;
+use crate::bus::{Bus, Mux, Range};
+use crate::dev::{Device, Dynamic};
 use crate::fsm::Machine;
 use crate::pcb::Board;
 
@@ -61,6 +61,23 @@ where
 
     fn write(&mut self, index: Idx, value: V) {
         self.0.write(index, value);
+    }
+}
+
+impl<T, Idx, V> TryAddress<Idx, V> for Shared<T>
+where
+    T: TryAddress<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
+{
+    type Error = <T as TryAddress<Idx, V>>::Error;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        self.0.try_read(index)
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
+        self.0.try_write(index, value)
     }
 }
 
@@ -182,6 +199,25 @@ where
     }
 }
 
+impl<T, Idx, V> Mux<Idx, V> for Shared<T>
+where
+    T: Mux<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
+{
+    fn get(&self, index: Idx) -> Option<Dynamic<Idx, V>> {
+        self.borrow().get(index)
+    }
+
+    fn map(&mut self, range: Range<Idx>, dev: Dynamic<Idx, V>) {
+        self.borrow_mut().map(range, dev);
+    }
+
+    fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
+        self.borrow_mut().unmap(dev)
+    }
+}
+
 /// Internal shared reference type.
 pub(crate) type Inner<T> = Rc<RefCell<T>>;
 
@@ -197,6 +233,23 @@ where
 
     fn write(&mut self, index: Idx, value: V) {
         self.borrow_mut().write(index, value);
+    }
+}
+
+impl<T, Idx, V> TryAddress<Idx, V> for Inner<T>
+where
+    T: TryAddress<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
+{
+    type Error = <T as TryAddress<Idx, V>>::Error;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        self.borrow().try_read(index)
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
+        self.borrow_mut().try_write(index, value)
     }
 }
 
@@ -286,5 +339,24 @@ where
 
     fn cycle(&mut self) {
         self.borrow_mut().cycle();
+    }
+}
+
+impl<T, Idx, V> Mux<Idx, V> for Inner<T>
+where
+    T: Mux<Idx, V> + ?Sized,
+    Idx: Value,
+    V: Value,
+{
+    fn get(&self, index: Idx) -> Option<Dynamic<Idx, V>> {
+        self.borrow().get(index)
+    }
+
+    fn map(&mut self, range: Range<Idx>, dev: Dynamic<Idx, V>) {
+        self.borrow_mut().map(range, dev);
+    }
+
+    fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
+        self.borrow_mut().unmap(dev)
     }
 }

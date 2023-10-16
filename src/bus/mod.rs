@@ -12,20 +12,24 @@
 //! [memory-mapped I/O]: https://en.wikipedia.org/wiki/Memory-mapped_I/O
 
 use std::fmt::Debug;
-use std::ops::{Index, RangeInclusive};
+use std::ops::RangeInclusive;
 
 use thiserror::Error;
 
-use self::map::Bus as BusMap;
+use self::map::Map;
 use crate::arch::{Address, TryAddress, Value};
 use crate::blk::Block;
 use crate::dev::{Device, Dynamic};
 
 mod map;
+mod mux;
 
 pub mod adapt;
 
-type Range<Idx> = RangeInclusive<Idx>;
+pub use self::mux::Mux;
+
+/// Mappable address range.
+pub(crate) type Range<Idx> = RangeInclusive<Idx>;
 
 /// Address [bus][bus].
 ///
@@ -36,7 +40,7 @@ where
     Idx: Value,
     V: Value,
 {
-    maps: BusMap<Idx, Dynamic<Idx, V>>,
+    maps: Map<Idx, Dynamic<Idx, V>>,
 }
 
 impl<Idx, V> Bus<Idx, V>
@@ -53,23 +57,6 @@ where
     /// Clears the bus, removing all devices.
     pub fn clear(&mut self) {
         self.maps.clear();
-    }
-
-    /// Maps a device at the provided `base` address in the bus.
-    pub fn map(&mut self, range: Range<Idx>, dev: Dynamic<Idx, V>) {
-        self.maps.map(range, dev);
-    }
-
-    /// Unmaps and returns the matching device in the bus.
-    ///
-    /// Returns `None` if no matching device was found (and unmapped).
-    pub fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
-        self.maps.unmap(dev)
-    }
-
-    /// Gets the matching device in the bus.
-    pub fn get(&self, index: Idx) -> Option<&Dynamic<Idx, V>> {
-        self.maps.get(index).map(|map| &map.entry)
     }
 }
 
@@ -123,18 +110,6 @@ where
 {
 }
 
-impl<Idx, V> Index<Idx> for Bus<Idx, V>
-where
-    Idx: Value,
-    V: Value,
-{
-    type Output = Dynamic<Idx, V>;
-
-    fn index(&self, index: Idx) -> &Self::Output {
-        &self.maps.get(index).unwrap().entry
-    }
-}
-
 impl<Idx, V, const N: usize> From<[(Range<Idx>, Dynamic<Idx, V>); N]> for Bus<Idx, V>
 where
     Idx: Value,
@@ -146,6 +121,24 @@ where
             this.map(range, dev);
         }
         this
+    }
+}
+
+impl<Idx, V> Mux<Idx, V> for Bus<Idx, V>
+where
+    Idx: Value,
+    V: Value,
+{
+    fn get(&self, index: Idx) -> Option<Dynamic<Idx, V>> {
+        self.maps.get(index).map(|map| &map.entry).cloned()
+    }
+
+    fn map(&mut self, range: Range<Idx>, dev: Dynamic<Idx, V>) {
+        self.maps.map(range, dev);
+    }
+
+    fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
+        self.maps.unmap(dev)
     }
 }
 

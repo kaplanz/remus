@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 
-use crate::arch::Value;
-use crate::dev::Device;
+use crate::arch::{TryAddress, Value};
+use crate::bus::{Mux, Range};
+use crate::dev::{Device, Dynamic};
 use crate::{Address, Block, Machine};
 
 /// Buffered device.
@@ -14,7 +15,7 @@ where
     Idx: Value,
     V: Value,
 {
-    inner: T,
+    pub inner: T,
     index: RefCell<Wire<Idx>>,
     value: RefCell<Wire<V>>,
 }
@@ -42,6 +43,34 @@ where
             self.index.borrow().get().unwrap_or(index),
             self.value.borrow().get().unwrap_or(value),
         );
+    }
+}
+
+impl<T, Idx, V> TryAddress<Idx, V> for Wired<T, Idx, V>
+where
+    T: Device<Idx, V> + TryAddress<Idx, V>,
+    Idx: Value,
+    V: Value,
+{
+    type Error = <T as TryAddress<Idx, V>>::Error;
+
+    fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
+        let index = self.index.borrow().get().unwrap_or(index);
+        let value = self
+            .value
+            .borrow()
+            .get()
+            .map_or_else(|| self.inner.try_read(index), |value| Ok(value))?;
+        self.index.borrow_mut().acquire(index);
+        self.value.borrow_mut().acquire(value);
+        Ok(value)
+    }
+
+    fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
+        self.inner.try_write(
+            self.index.borrow().get().unwrap_or(index),
+            self.value.borrow().get().unwrap_or(value),
+        )
     }
 }
 
@@ -75,6 +104,25 @@ where
         self.index.get_mut().release();
         self.value.get_mut().release();
         self.inner.cycle();
+    }
+}
+
+impl<T, Idx, V> Mux<Idx, V> for Wired<T, Idx, V>
+where
+    T: Device<Idx, V> + Mux<Idx, V>,
+    Idx: Value,
+    V: Value,
+{
+    fn get(&self, index: Idx) -> Option<Dynamic<Idx, V>> {
+        self.inner.get(index)
+    }
+
+    fn map(&mut self, range: Range<Idx>, dev: Dynamic<Idx, V>) {
+        self.inner.map(range, dev);
+    }
+
+    fn unmap(&mut self, dev: &Dynamic<Idx, V>) -> Option<Dynamic<Idx, V>> {
+        self.inner.unmap(dev)
     }
 }
 

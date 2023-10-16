@@ -1,8 +1,9 @@
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use crate::arch::{TryAddress, Value};
 use crate::blk::Block;
-use crate::bus::{self, Bus};
+use crate::bus::{self, Mux};
 use crate::dev::Device;
 use crate::Address;
 
@@ -11,14 +12,16 @@ use crate::Address;
 /// # Usage
 ///
 /// The `Mask` adapter...
-#[derive(Debug, Default)]
-pub struct Mask<Idx, V>(Vec<Layer<Idx, V>>)
+#[derive(Debug)]
+pub struct Mask<T, Idx, V>(Vec<Layer<T, Idx, V>>)
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value;
 
-impl<Idx, V> Mask<Idx, V>
+impl<T, Idx, V> Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
@@ -29,8 +32,9 @@ where
     }
 }
 
-impl<Idx, V> Address<Idx, V> for Mask<Idx, V>
+impl<T, Idx, V> Address<Idx, V> for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
@@ -43,8 +47,9 @@ where
     }
 }
 
-impl<Idx, V> TryAddress<Idx, V> for Mask<Idx, V>
+impl<T, Idx, V> TryAddress<Idx, V> for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
@@ -67,27 +72,41 @@ where
     }
 }
 
-impl<Idx, V> Block for Mask<Idx, V>
+impl<T, Idx, V> Block for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
 }
 
-impl<Idx, V> Deref for Mask<Idx, V>
+impl<T, Idx, V> Default for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
-    type Target = Vec<Layer<Idx, V>>;
+    fn default() -> Self {
+        Self(Vec::default())
+    }
+}
+
+impl<T, Idx, V> Deref for Mask<T, Idx, V>
+where
+    T: Mux<Idx, V>,
+    Idx: Value,
+    V: Value,
+{
+    type Target = Vec<Layer<T, Idx, V>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<Idx, V> DerefMut for Mask<Idx, V>
+impl<T, Idx, V> DerefMut for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
@@ -96,33 +115,105 @@ where
     }
 }
 
-impl<Idx, V> Device<Idx, V> for Mask<Idx, V>
+impl<T, Idx, V> Device<Idx, V> for Mask<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
 }
 
 #[derive(Debug)]
-pub struct Layer<Idx, V>
+pub struct Layer<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
-    pub bus: Bus<Idx, V>,
+    pub bus: T,
     pub skip: bool,
+    phantom: PhantomData<(Idx, V)>,
 }
 
-impl<Idx, V> Layer<Idx, V>
+impl<T, Idx, V> Layer<T, Idx, V>
 where
+    T: Mux<Idx, V>,
     Idx: Value,
     V: Value,
 {
     #[must_use]
-    pub fn new(bus: Bus<Idx, V>) -> Self {
-        Self { bus, skip: false }
+    pub fn new(bus: T) -> Self {
+        Self {
+            bus,
+            skip: false,
+            phantom: PhantomData,
+        }
     }
 }
 
 /// A type specifying general categories of [`Mask`] error.
 pub type Error<Idx> = bus::Error<Idx>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dev::Dynamic;
+    use crate::mem::Ram;
+
+    type Bus = crate::bus::Bus<u16, u8>;
+
+    fn setup() -> Mask<Bus, u16, u8> {
+        // Create a new mask
+        let mut mask = Mask::new();
+        // Populate mask with layers
+        for (range, value) in [
+            // [aaaaaaaa        ]
+            (0x00..=0x7f, 0xaa),
+            // [  bbbbbbbb      ]
+            (0x20..=0x9f, 0xbb),
+            // [    cccccccc    ]
+            (0x40..=0xbf, 0xcc),
+            // [      dddddddd  ]
+            (0x60..=0xdf, 0xdd),
+            // [        eeeeeeee]
+            (0x80..=0xff, 0xee),
+        ] {
+            // Define bus
+            let mut bus = Bus::new();
+            // Declare device
+            let dev: Dynamic<u16, u8> = Ram::from(&[value; 0x80]).to_dynamic();
+            bus.map(range, dev);
+            // Add layer
+            mask.push(Layer::new(bus));
+        }
+        // Reverse the mask
+        mask.reverse();
+        // [aabbccddeeeeeeee]
+        mask
+    }
+
+    #[test]
+    fn new_works() {
+        let _: Mask<Bus, u16, u8> = Mask::new();
+    }
+
+    #[test]
+    fn address_read_works() {
+        let mask = setup();
+        (0x00..=0x1f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xaa);
+        });
+        (0x20..=0x3f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xbb);
+        });
+        (0x40..=0x5f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xcc);
+        });
+        (0x60..=0x7f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xdd);
+        });
+        (0x80..=0xff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xee);
+        });
+    }
+}

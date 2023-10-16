@@ -12,12 +12,12 @@ pub(super) trait Entry: Clone + Debug + Eq {}
 impl<T> Entry for T where T: Clone + Debug + Eq {}
 
 #[derive(Debug)]
-pub(super) struct Bus<Idx, V>(BTreeMap<Idx, BTreeSet<Mapping<Idx, V>>>)
+pub(super) struct Map<Idx, V>(BTreeMap<Idx, BTreeSet<Mapping<Idx, V>>>)
 where
     Idx: Value,
     V: Entry;
 
-impl<Idx, V> Bus<Idx, V>
+impl<Idx, V> Map<Idx, V>
 where
     Idx: Value,
     V: Entry,
@@ -66,7 +66,7 @@ where
     }
 }
 
-impl<Idx, V> Default for Bus<Idx, V>
+impl<Idx, V> Default for Map<Idx, V>
 where
     Idx: Value,
     V: Entry,
