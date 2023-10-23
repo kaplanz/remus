@@ -43,11 +43,19 @@ where
     type Error: Error;
 
     /// Fallibly reads from the specified address.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the read is not successful.
     fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
         Ok(self.read(index))
     }
 
     /// Fallibly writes to the specified address.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the write is not successful.
     fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
         self.write(index, value);
         Ok(())
