@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
 
 use crate::arch::{TryAddress, Value};
 use crate::blk::Block;
@@ -29,6 +28,50 @@ where
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Returns a reference to the layer residing at `index`.
+    #[must_use]
+    pub fn layer(&self, index: usize) -> Option<&Layer<T, Idx, V>> {
+        self.0.get(index)
+    }
+
+    /// Returns a mutable reference to the layer residing at `index`.
+    pub fn layer_mut(&mut self, index: usize) -> Option<&mut Layer<T, Idx, V>> {
+        self.0.get_mut(index)
+    }
+
+    /// Inserts a layer at position `index` within the mask.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index > len`.
+    pub fn insert(&mut self, index: usize, bus: T) {
+        self.0.insert(index, Layer::new(bus));
+    }
+
+    /// Removes and returns the layer at position `index` within the mask.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is out of bounds.
+    pub fn remove(&mut self, index: usize) -> T {
+        self.0.remove(index).bus
+    }
+
+    /// Appends a layer to the back of the mask.
+    pub fn push(&mut self, bus: T) {
+        self.0.push(Layer::new(bus));
+    }
+
+    /// Removes the last layer from the mask and returns it.
+    pub fn pop(&mut self) -> Option<T> {
+        self.0.pop().map(|layer| layer.bus)
+    }
+
+    /// Reverses the order of layers in the mask, in place.
+    pub fn reverse(&mut self) {
+        self.0.reverse();
     }
 }
 
@@ -88,30 +131,6 @@ where
 {
     fn default() -> Self {
         Self(Vec::default())
-    }
-}
-
-impl<T, Idx, V> Deref for Mask<T, Idx, V>
-where
-    T: Mux<Idx, V>,
-    Idx: Value,
-    V: Value,
-{
-    type Target = Vec<Layer<T, Idx, V>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T, Idx, V> DerefMut for Mask<T, Idx, V>
-where
-    T: Mux<Idx, V>,
-    Idx: Value,
-    V: Value,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
@@ -184,7 +203,7 @@ mod tests {
             let dev: Dynamic<u16, u8> = Ram::from(&[value; 0x80]).to_dynamic();
             bus.map(range, dev);
             // Add layer
-            mask.push(Layer::new(bus));
+            mask.push(bus);
         }
         // Reverse the mask
         mask.reverse();
