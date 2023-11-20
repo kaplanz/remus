@@ -143,7 +143,7 @@ where
 }
 
 /// A type specifying general categories of [`Bus`] error.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error<Idx: Value> {
     #[error("index is not mapped: {0:?}")]
     Unmapped(Idx),

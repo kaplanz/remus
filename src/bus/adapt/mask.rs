@@ -151,7 +151,12 @@ mod tests {
 
     type Bus = crate::bus::Bus<u16, u8>;
 
-    fn setup() -> Mask<Bus, u16, u8> {
+    #[test]
+    fn new_works() {
+        let _: Mask<Bus, u16, u8> = Mask::new();
+    }
+
+    fn setup_full() -> Mask<Bus, u16, u8> {
         // Create a new mask
         let mut mask = Mask::new();
         // Populate mask with layers
@@ -182,13 +187,8 @@ mod tests {
     }
 
     #[test]
-    fn new_works() {
-        let _: Mask<Bus, u16, u8> = Mask::new();
-    }
-
-    #[test]
-    fn address_read_works() {
-        let mask = setup();
+    fn test_full_works() {
+        let mask = setup_full();
         (0x00..=0x1f).for_each(|index| {
             assert_eq!(mask.read(index), 0xaa);
         });
@@ -203,6 +203,104 @@ mod tests {
         });
         (0x80..=0xff).for_each(|index| {
             assert_eq!(mask.read(index), 0xee);
+        });
+    }
+
+
+    fn setup_holy() -> Mask<Bus, u16, u8> {
+        // Create a new mask
+        let mut mask = Mask::new();
+        // Populate mask with layers
+        for (range, value) in [
+            // [aaaa            ]
+            (0x00..=0x3f, 0xaa),
+            // [      bbbb      ]
+            (0x60..=0x9f, 0xbb),
+            // [            cccc]
+            (0xc0..=0xff, 0xcc),
+        ] {
+            // Define bus
+            let mut bus = Bus::new();
+            // Declare device
+            let dev: Dynamic<u16, u8> = Ram::from(&[value; 0x80]).to_dynamic();
+            bus.map(range, dev);
+            // Add layer
+            mask.push(bus);
+        }
+        // Reverse the mask
+        mask.reverse();
+        // [aaaa  bbbb  cccc]
+        mask
+    }
+
+    #[test]
+    fn test_holy_works() {
+        let mask = setup_holy();
+        (0x00..=0x3f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xaa);
+        });
+        (0x40..=0x5f).for_each(|index| {
+            assert_eq!(mask.try_read(index), Err(bus::Error::Unmapped(index)));
+        });
+        (0x60..=0x9f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xbb);
+        });
+        (0xa0..=0xbf).for_each(|index| {
+            assert_eq!(mask.try_read(index), Err(bus::Error::Unmapped(index)));
+        });
+        (0xc0..=0xff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xcc);
+        });
+    }
+
+    fn setup_real() -> Mask<Bus, u16, u8> {
+        // Create a new mask
+        let mut mask = Mask::new();
+        // Populate mask with layers
+        let mut a = Bus::new();
+        let mut b = Bus::new();
+        let mut c = Bus::new();
+        a.map(0x0000..=0x00ff, Ram::from(&[0xa1; 0x0100]).to_dynamic());
+        b.map(0x0000..=0x7fff, Ram::from(&[0xb1; 0x8000]).to_dynamic());
+        c.map(0x8000..=0x9fff, Ram::from(&[0xc1; 0x2000]).to_dynamic());
+        b.map(0xa000..=0xbfff, Ram::from(&[0xb2; 0x2000]).to_dynamic());
+        b.map(0xc000..=0xdfff, Ram::from(&[0xb3; 0x2000]).to_dynamic());
+        b.map(0xe000..=0xffff, Ram::from(&[0xb4; 0x2000]).to_dynamic());
+        a.map(0xfe00..=0xffff, Ram::from(&[0xa2; 0x0200]).to_dynamic());
+        a.map(0xff80..=0xffff, Ram::from(&[0xa3; 0x0080]).to_dynamic());
+        mask.push(a);
+        mask.push(b);
+        mask.push(c);
+        // [abbbbbbbccbbbbcc]
+        mask
+    }
+
+    #[test]
+    fn test_real_works() {
+        let mask = setup_real();
+        (0x0000..=0x00ff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xa1);
+        });
+        (0x0100..=0x7fff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xb1);
+        });
+        (0x8000..=0x9fff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xc1);
+        });
+        (0xa000..=0xbfff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xb2);
+        });
+        (0xc000..=0xdfff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xb3);
+        });
+        (0xe000..=0xfdff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xb4);
+        });
+        (0xfe00..=0xff7f).for_each(|index| {
+            assert_eq!(mask.read(index), 0xa2);
+        });
+        (0xff80..=0xffff).for_each(|index| {
+            assert_eq!(mask.read(index), 0xa3);
         });
     }
 }
