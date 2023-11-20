@@ -12,7 +12,7 @@ use crate::Address;
 ///
 /// The `Mask` adapter...
 #[derive(Debug)]
-pub struct Mask<T, Idx, V>(Vec<Layer<T, Idx, V>>)
+pub struct Mask<T, Idx, V>(Vec<T>, PhantomData<(Idx, V)>)
 where
     T: Mux<Idx, V>,
     Idx: Value,
@@ -32,12 +32,12 @@ where
 
     /// Returns a reference to the layer residing at `index`.
     #[must_use]
-    pub fn layer(&self, index: usize) -> Option<&Layer<T, Idx, V>> {
+    pub fn layer(&self, index: usize) -> Option<&T> {
         self.0.get(index)
     }
 
     /// Returns a mutable reference to the layer residing at `index`.
-    pub fn layer_mut(&mut self, index: usize) -> Option<&mut Layer<T, Idx, V>> {
+    pub fn layer_mut(&mut self, index: usize) -> Option<&mut T> {
         self.0.get_mut(index)
     }
 
@@ -46,8 +46,8 @@ where
     /// # Panics
     ///
     /// Panics if `index > len`.
-    pub fn insert(&mut self, index: usize, bus: T) {
-        self.0.insert(index, Layer::new(bus));
+    pub fn insert(&mut self, index: usize, layer: T) {
+        self.0.insert(index, layer);
     }
 
     /// Removes and returns the layer at position `index` within the mask.
@@ -56,17 +56,17 @@ where
     ///
     /// Panics if `index` is out of bounds.
     pub fn remove(&mut self, index: usize) -> T {
-        self.0.remove(index).bus
+        self.0.remove(index)
     }
 
     /// Appends a layer to the back of the mask.
-    pub fn push(&mut self, bus: T) {
-        self.0.push(Layer::new(bus));
+    pub fn push(&mut self, layer: T) {
+        self.0.push(layer);
     }
 
     /// Removes the last layer from the mask and returns it.
     pub fn pop(&mut self) -> Option<T> {
-        self.0.pop().map(|layer| layer.bus)
+        self.0.pop()
     }
 
     /// Reverses the order of layers in the mask, in place.
@@ -101,16 +101,14 @@ where
     fn try_read(&self, index: Idx) -> Result<V, Self::Error> {
         self.0
             .iter()
-            .filter(|layer| !layer.skip)
-            .find_map(|layer| layer.bus.try_read(index).ok())
+            .find_map(|layer| layer.try_read(index).ok())
             .ok_or(Error::Unmapped(index))
     }
 
     fn try_write(&mut self, index: Idx, value: V) -> Result<(), Self::Error> {
         self.0
             .iter_mut()
-            .filter(|layer| !layer.skip)
-            .find_map(|layer| layer.bus.try_write(index, value).ok())
+            .find_map(|layer| layer.try_write(index, value).ok())
             .ok_or(Error::Unmapped(index))
     }
 }
@@ -130,7 +128,7 @@ where
     V: Value,
 {
     fn default() -> Self {
-        Self(Vec::default())
+        Self(Vec::default(), PhantomData)
     }
 }
 
@@ -140,34 +138,6 @@ where
     Idx: Value,
     V: Value,
 {
-}
-
-#[derive(Debug)]
-pub struct Layer<T, Idx, V>
-where
-    T: Mux<Idx, V>,
-    Idx: Value,
-    V: Value,
-{
-    pub bus: T,
-    pub skip: bool,
-    phantom: PhantomData<(Idx, V)>,
-}
-
-impl<T, Idx, V> Layer<T, Idx, V>
-where
-    T: Mux<Idx, V>,
-    Idx: Value,
-    V: Value,
-{
-    #[must_use]
-    pub fn new(bus: T) -> Self {
-        Self {
-            bus,
-            skip: false,
-            phantom: PhantomData,
-        }
-    }
 }
 
 /// A type specifying general categories of [`Mask`] error.
