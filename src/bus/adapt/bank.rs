@@ -17,7 +17,7 @@ where
     V: Value,
 {
     sel: usize,
-    banks: Vec<Dynamic<Idx, V>>,
+    vec: Vec<Dynamic<Idx, V>>,
 }
 
 impl<Idx, V> Bank<Idx, V>
@@ -44,24 +44,29 @@ where
 
     /// Appends a device to the back of a bank.
     pub fn add(&mut self, dev: Dynamic<Idx, V>) {
-        self.banks.push(dev);
+        self.vec.push(dev);
     }
 
     /// Clears the bank, removing all devices.
     pub fn clear(&mut self) {
-        self.banks.clear();
+        self.vec.clear();
     }
 
     /// Inserts an device at position `index` within the bank, shifting all
     /// devices after it to the right.
     pub fn insert(&mut self, index: usize, dev: Dynamic<Idx, V>) {
-        self.banks.insert(index, dev);
+        self.vec.insert(index, dev);
     }
 
     /// Removes and returns the device at position `index` within the bank,
     /// shifting all devices after it to the left.
     pub fn remove(&mut self, index: usize) -> Dynamic<Idx, V> {
-        self.banks.remove(index)
+        self.vec.remove(index)
+    }
+
+    /// Returns the number of banks.
+    pub fn len(&self) -> usize {
+        self.vec.len()
     }
 }
 
@@ -71,11 +76,11 @@ where
     V: Value,
 {
     fn read(&self, index: Idx) -> V {
-        self.banks[self.sel].read(index)
+        self.vec[self.sel].read(index)
     }
 
     fn write(&mut self, index: Idx, value: V) {
-        self.banks[self.sel].write(index, value);
+        self.vec[self.sel].write(index, value);
     }
 }
 
@@ -86,7 +91,7 @@ where
 {
     fn reset(&mut self) {
         self.sel = 0;
-        for bank in &mut self.banks {
+        for bank in &mut self.vec {
             bank.reset();
         }
     }
@@ -106,7 +111,7 @@ where
 {
     fn from(banks: &[Dynamic<Idx, V>]) -> Self {
         Self {
-            banks: Vec::from(banks),
+            vec: Vec::from(banks),
             ..Default::default()
         }
     }
@@ -123,7 +128,7 @@ mod tests {
         let ram = Ram::from(&[0x55; 0x100]).to_dynamic();
         let null = Null::<u8>::new().to_dynamic();
         let random = Random::<u8, 0x100>::new().to_dynamic();
-        bank.banks.extend([ram, null, random]);
+        bank.vec.extend([ram, null, random]);
         bank
     }
 
