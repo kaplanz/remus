@@ -8,7 +8,7 @@ use crate::{Address, Block, Machine};
 /// Buffered device.
 ///
 /// Uses [`Wire`]s to model registered I/O for device requests.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Wired<T, Idx, V>
 where
     T: Device<Idx, V>,
@@ -92,18 +92,17 @@ where
 
 impl<T, Idx, V> Machine for Wired<T, Idx, V>
 where
-    T: Device<Idx, V> + Machine,
+    T: Device<Idx, V>,
     Idx: Value,
     V: Value,
 {
     fn enabled(&self) -> bool {
-        self.inner.enabled()
+        true
     }
 
     fn cycle(&mut self) {
         self.index.get_mut().release();
         self.value.get_mut().release();
-        self.inner.cycle();
     }
 }
 
